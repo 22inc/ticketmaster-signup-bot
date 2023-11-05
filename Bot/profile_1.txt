@@ -1,0 +1,18 @@
+Name: John Doe
+Email: johndoe@email.com
+
+Shipping Address: 100 Main St
+Shipping Secondary: Apt 1
+Shipping City: Los Angeles
+Shipping Zip Code: 90001
+Shipping State: CA
+Shipping Phone: 1234567890
+
+Billing Address: 100 Main St
+Billing Secondary: Apt 1
+Billing City: Los Angeles
+Billing Zip Code: 90001
+Billing State: CA
+Billing Phone: 1234567890
+
+pName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone
