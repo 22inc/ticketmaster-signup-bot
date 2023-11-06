@@ -120,24 +120,44 @@ def ticketmasterLogin():
             print("Failed to click the button: ", e)
 
         try:
-            time.sleep(10)
+            time.sleep(15)
 
             actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
 
-            actions.send_keys(email).perform()
-    
             actions.send_keys(Keys.TAB).perform()
-
-            actions.send_keys(password).perform()
+            time.sleep(0.1)
             
             actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+
+            actions.send_keys(email).perform()
+            time.sleep(0.1)
+    
             actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+
+            actions.send_keys(password).perform()
+            time.sleep(0.1)
+            
             actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+
             actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+ 
             actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+ 
             actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+ 
+            actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+ 
+            actions.send_keys(Keys.TAB).perform()
+            time.sleep(0.1)
+
             print("Details entered successfully.")
 
             actions.send_keys(Keys.RETURN).perform()
@@ -145,15 +165,14 @@ def ticketmasterLogin():
             time.sleep(5)
 
             actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.RETURN)
 
-            time.sleep(10)
-
-            actions.send_keys('').perform()
-
-            print("Anti-bot done successfully.")
         except Exception as e:
             print("Failed to enter email: ", e)
+
+#        actions.send_keys(Keys.TAB).perform()
+#        actions.send_keys(Keys.RETURN).perform(time.sleep(10))
+        
+        print("Anti-bot done successfully.")
 
     else:
         print("No unused accounts available.")
