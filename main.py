@@ -78,11 +78,9 @@ def ticketmasterAccountDefine():
     os.system("cls")    
 
     print("Accounts loaded.")
-    time.sleep(1)
     os.system("cls")
 
     print("Ticketmaster module loading...")
-    time.sleep(1)
     ticketmasterModule()
 
 def markAccountAsUsed():
@@ -109,7 +107,6 @@ def ticketmasterLogin():
 
     if email is not None:
         try:
-            time.sleep(5)
             button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.ID, 'company-logo'))
             )
@@ -120,43 +117,43 @@ def ticketmasterLogin():
             print("Failed to click the button: ", e)
 
         try:
-            time.sleep(15)
+            time.sleep(10)
 
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
 
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
             
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
 
             actions.send_keys(email).perform()
-            time.sleep(0.1)
+            time.sleep(1)
     
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
 
             actions.send_keys(password).perform()
-            time.sleep(0.1)
+            time.sleep(1)
             
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
 
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
  
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
  
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
  
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
  
             actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.1)
+            time.sleep(1)
 
             print("Details entered successfully.")
 
