@@ -15,14 +15,6 @@ import platform
 import keyboard
 from universalclear import clear
 import typer
-import logging
-
-logging.basicConfig(
-    filename='automation.log',
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
 
 app = typer.Typer()
 
@@ -153,7 +145,7 @@ def ticketmasterAntiBot(profile, module, selected):
                 EC.element_to_be_clickable((By.ID, 'company-logo'))
             )
             button.click()
-            logging.info("Sign in started.")
+            print("Sign in started.")
 
         except Exception as e:
             print("Failed to click the button: ", e)
@@ -202,18 +194,18 @@ def ticketmasterModule(profile, module, selected):
     proxies = readProxies()
     proxy = getRandomProxy(proxies)
 
-    logging.info(f"Selected Proxy: {proxy}")
+    print(f"Selected Proxy: {proxy}")
 
     clear()
     driver = configureDriver(proxy)
     driver.get(f'https://registration.ticketmaster.com/{selected}')
 
     try:
-        logging.info(f"Now loading {driver.title}...")
+        print(f"Now loading {driver.title}...")
         ticketmasterAntiBot(profile, module, selected)
 
     except Exception as e:
-        logging.error(f"Error in Ticketmaster module: {e}")
+        print(f"Error in Ticketmaster module: {e}")
 
     finally:
         driver.quit()
@@ -439,4 +431,3 @@ def loadSite(profile, module, selected):
 if __name__ == "__main__":
     app()
     ticketmasterModule("profile", "ticketmaster", "selected")
-    logging.shutdown()
