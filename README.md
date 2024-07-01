@@ -5,17 +5,12 @@ This Python script is designed for automating interactions with web services lik
 # Features
 
 Ticketmaster Module: Automates account login and interaction with Ticketmaster registration pages.
+
 Shopify Module: Searches for specific products on Shopify stores via their JSON API.
 
 # Dependencies
 
-Python 3.x
-chromedriver_autoinstaller
-selenium
-requests
-keyboard
-universalclear
-typer
+Python 3.x AND requirements.txt
 
 # Installation
 
@@ -47,8 +42,11 @@ typer (filename).py run (your_profile_name) (wanted_module) (destination)
 ```
 
 Profile Name: Name of the profile file without extension (e.g., example for profile_example.txt).
+
 Module: Specify either Ticketmaster or Shopify.
+
 Destination: Specific site or event identifier (e.g., website for shopify or event/performer name for ticketmaster).
+
 Follow the prompts to execute the desired automation tasks.
 
 # Notes
