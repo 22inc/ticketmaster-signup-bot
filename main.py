@@ -1,5 +1,6 @@
 import os
 import time
+import random
 import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,9 +8,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
+import platform
+import keyboard
 
-chromedriver_autoinstaller.install()
 
+# chromedriver_autoinstaller.install()
+
+clearCommand = ""
 pName = ""
 pEmail = ""
 pShippingAddress = ""
@@ -28,10 +34,57 @@ pBillingPhone = ""
 driver = ""
 ticketmasterAccountList = []
 
+def readProxies():
+    with open('proxies.txt', 'r') as file:
+        proxies = [line.strip() for line in file if line.strip()]
+    return proxies
+
+def getRandomProxy(proxies):
+    return random.choice(proxies)
+
+def configureDriver(proxy):
+    chromeOptions = Options()
+    chromeOptions.add_argument('--proxy-server=%s' % proxy)
+    chromeOptions.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 14.4; rv:124.0) Gecko/20100101 Firefox/124.0")
+
+    driver = webdriver.Chrome(options=chromeOptions)
+
+    return driver
+
+def isTextPresent(text):
+    try:
+        # Wait for up to 10 seconds for the text to be present
+        elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
+        WebDriverWait(driver, 10).until(elementPresent)
+        return True
+    except:
+        return False
+    
+def holdKeyforDuration(key, duration):
+    keyboard.press(key)
+    time.sleep(duration)
+    keyboard.release(key)
+
+def identifyOS():
+    global clearCommand
+
+    if platform.system() == "Linux" or platform.system() == "Darwin":
+        clearCommand = "clear"
+        print("Mac or Linux System")
+        profileSelect()
+
+    elif platform.system() == "Windows":
+        clearCommand = "cls"
+        print("Windows System")
+        profileSelect()
+    
+    else:
+        return "Unknown OS, this program will not work for you."
+
 def profileSelect():
     global pName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone
 
-    os.system("cls")
+    os.system(clearCommand)
     profile = input("Which profile would you like to use? ")
 
     with open("profile_" + profile + ".txt", "r") as profile_file:
@@ -54,7 +107,7 @@ def profileSelect():
                 pBillingAddress = line.split("Billing Address: ")[1].strip()
             # ... (other billing variables)
 
-    os.system("cls")
+    os.system(clearCommand)
     print("Your profile has been loaded.")
     
     loadSite()
@@ -75,10 +128,10 @@ def ticketmasterAccountDefine():
         for account in ticketmasterAccountList:
             print(account)
 
-    os.system("cls")    
+    os.system(clearCommand)    
 
     print("Accounts loaded.")
-    os.system("cls")
+    os.system(clearCommand)
 
     print("Ticketmaster module loading...")
     ticketmasterModule()
@@ -91,7 +144,7 @@ def markAccountAsUsed():
         for line in lines:
             if f"{email}:{password}" in line:
                 line = "#" + line
-            file.write(line)
+                file.write(line)
 
 def getUnusedAccount():
     for email, password in ticketmasterAccountList:
@@ -108,7 +161,7 @@ def ticketmasterLogin():
     if email is not None:
         try:
             button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.ID, 'company-logo'))
+            EC.element_to_be_clickable((By.ID, 'company-logo'))
             )
             button.click()
             print("Button clicked successfully.")
@@ -117,20 +170,33 @@ def ticketmasterLogin():
             print("Failed to click the button: ", e)
 
         try:
-            time.sleep(10)
-
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
-
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
+            time.sleep(5)
+            while isTextPresent("Let's Get Your Identity Verified"):
+                time.sleep(5)
+                holdKeyforDuration('enter', 10)
+                print("First anti-bot done succesfuly.")
+                return
             
+            #actions.send_keys(Keys.TAB).perform()
+            #time.sleep(5)
+            #holdKeyforDuration('enter', 10)
+            #print("First anti-bot done succesfuly.")
+
+            time.sleep(10)
+            actions.send_keys(Keys.TAB).perform()
+            holdKeyforDuration('enter', 10)
+            print("Second anti-bot done succesfuly.")
+            time.sleep(5)
+
+            actions.send_keys(Keys.TAB).perform()
+            time.sleep(1)
+
             actions.send_keys(Keys.TAB).perform()
             time.sleep(1)
 
             actions.send_keys(email).perform()
             time.sleep(1)
-    
+        
             actions.send_keys(Keys.TAB).perform()
             time.sleep(1)
 
@@ -142,32 +208,32 @@ def ticketmasterLogin():
 
             actions.send_keys(Keys.TAB).perform()
             time.sleep(1)
- 
+    
             actions.send_keys(Keys.TAB).perform()
             time.sleep(1)
- 
+    
             actions.send_keys(Keys.TAB).perform()
             time.sleep(1)
- 
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
- 
+    
             actions.send_keys(Keys.TAB).perform()
             time.sleep(1)
 
             print("Details entered successfully.")
 
-            actions.send_keys(Keys.RETURN).perform()
+            signInButton = driver.find_element(By.XPATH, "//span[text()='Sign in']")
+            signInButton.click()
+            print("Sign in button clicked.")
 
-            time.sleep(5)
+            time.sleep(2.5)
+
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.RETURN).perform()
+            time.sleep(10)
 
             actions.send_keys(Keys.TAB).perform()
 
         except Exception as e:
             print("Failed to enter email: ", e)
-
-#        actions.send_keys(Keys.TAB).perform()
-#        actions.send_keys(Keys.RETURN).perform(time.sleep(10))
         
         print("Anti-bot done successfully.")
 
@@ -176,36 +242,47 @@ def ticketmasterLogin():
 
     input("")
     
-    markAccountAsUsed()
+#    markAccountAsUsed()
 
 def ticketmasterModule():
     global driver, actions
+    proxies = readProxies()
 
-    os.system("cls")
+    if not proxies:
+        print("No proxies found in proxies file...")
+        time.sleep(2.5)
+        return
+    
+    selectedProxy = getRandomProxy(proxies)
+
+    os.system(clearCommand)
     ticketmasterSelected = input("What/who are we going for? ")
-    os.system("cls")
+    os.system(clearCommand)
 
-    driver = webdriver.Chrome()
+    print(f"Selected Proxy: {selectedProxy}")
+
+    driver = configureDriver(selectedProxy)
     driver.get('https://registration.ticketmaster.com/' + ticketmasterSelected)
 
     actions = ActionChains(driver)
 
-    os.system("cls") 
+    os.system(clearCommand) 
     print("Now loading " + driver.title + "...")
 
     ticketmasterLogin()
 
 def loadSite():
-    os.system("cls")
+    os.system(clearCommand)
     selectedModule = input("What module would you like to load? ")
 
     if selectedModule.lower() == 'ticketmaster':
-        os.system("cls")
+        os.system(clearCommand)
         ticketmasterAccountDefine()
     elif selectedModule.lower() == 'shopify':
         print("Shopify module loading... ")
     else:
         print("Invalid module choice.")
+        time.sleep(2.5)
         loadSite()
 
-profileSelect()
+identifyOS()
