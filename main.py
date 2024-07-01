@@ -1,3 +1,6 @@
+# ARGS AND RUN COMMAND
+# typer (filename).py run YOUR_PROFILE_NAME DECLARED_MODULE PERSON/EVENT/WEBSITE
+
 import os
 import time
 import random
@@ -14,8 +17,13 @@ from selenium.webdriver.chrome.options import Options
 import platform
 import keyboard
 from universalclear import clear
+import typer
+
+app = typer.Typer()
 
 # chromedriver_autoinstaller.install()
+
+ticketmasterAccountList = []
 
 pName = ""
 pEmail = ""
@@ -33,7 +41,6 @@ pBillingState = ""
 pBillingPhone = ""
 
 driver = ""
-ticketmasterAccountList = []
 
 def readProxies():
     with open('proxies.txt', 'r') as file:
@@ -48,6 +55,7 @@ def getRandomProxy(proxies):
         return None
 
 def configureDriver(proxy):
+    global driver
     chromeOptions = Options()
     
     if proxy:
@@ -73,39 +81,11 @@ def holdKeyforDuration(key, duration):
     time.sleep(duration)
     keyboard.release(key)
 
-def profileSelect():
-    global pName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone
-
-    clear()
-    profile = input("Which profile would you like to use? ")
-
-    with open("profile_" + profile + ".txt", "r") as profile_file:
-        for line in profile_file:
-            print(line)
-
-            # Define basic variables from the selected profile.
-            if "Name:" in line:
-                pName = line.split("Name: ")[1].strip()
-            if "Email:" in line:
-                pEmail = line.split("Email: ")[1].strip()
-
-            # Define shipping variables from the selected profile.
-            if "Shipping Address:" in line:
-                pShippingAddress = line.split("Shipping Address: ")[1].strip()
-            # ... (other shipping variables)
-
-            # Define billing variables from the selected profile.
-            if "Billing Address:" in line:
-                pBillingAddress = line.split("Billing Address: ")[1].strip()
-            # ... (other billing variables)
-
-        clear()
-    print("Your profile has been loaded.")
+def ticketmasterAccountDefine(profile, module, selected):
+    global ticketmasterAccountList
     
-    loadSite()
-
-def ticketmasterAccountDefine():
-    global account, email, password
+    # Clear the list first
+    ticketmasterAccountList = []
 
     # Read the accounts from the file and store them as tuples in a list
     with open("ticketmaster_accounts.txt", "r") as file:
@@ -117,35 +97,30 @@ def ticketmasterAccountDefine():
             # Append the account to the list
             ticketmasterAccountList.append(account)
 
-        for account in ticketmasterAccountList:
-            print(account)
-
-    clear()    
-
-    print("Accounts loaded.")
+    print("Accounts loaded:", ticketmasterAccountList)
+    time.sleep(1)
     clear()
-
     print("Ticketmaster module loading...")
-    ticketmasterModule()
+    ticketmasterModule(profile, module, selected)
 
-def markAccountAsUsed():
+
+def markAccountAsUsed(email, password):
     # Mark an account as used by adding a '#' in front of it in the file
     with open("ticketmaster_accounts.txt", "r") as file:
         lines = file.readlines()
+
     with open("ticketmaster_accounts.txt", "w") as file:
         for line in lines:
             if f"{email}:{password}" in line:
-                line = "#" + line
-                file.write(line)
+                line = "#" + line.lstrip('#')
+            file.write(line)
 
 def getUnusedAccount():
     for email, password in ticketmasterAccountList:
-        # Check if the account is not marked as used (doesn't start with '#')
-        if not email.startswith("#"):
-            return email, password
+        return email, password
     return None, None
 
-def ticketmasterLogin():
+def ticketmasterLogin(profile, module, selected):
     global driver, actions
 
     email, password = getUnusedAccount()
@@ -210,7 +185,8 @@ def ticketmasterLogin():
             signInButton.click()
             print("Sign in button clicked.")
 
-            time.sleep(2.5)
+            actions.send_keys(Keys.TAB).perform()
+            time.sleep(1)
 
             while isTextPresent("Let's Get Your Identity Verified"):
                 time.sleep(5)
@@ -228,72 +204,67 @@ def ticketmasterLogin():
         print("No unused accounts available.")
 
     input("")
-    
-#    markAccountAsUsed()
 
-def ticketmasterModule():
+    markAccountAsUsed(email, password)
+    
+def ticketmasterModule(profile, module, selected):
     global driver, actions
     proxies = readProxies()
     
-    selectedProxy = getRandomProxy(proxies)
+    proxy = getRandomProxy(proxies)
 
     clear()
-    ticketmasterSelected = input("What/who are we going for? ")
-    clear()
 
-    print(f"Selected Proxy: {selectedProxy}")
+    print(f"Selected Proxy: {proxy}")
 
-    driver = configureDriver(selectedProxy)
-    driver.get('https://registration.ticketmaster.com/' + ticketmasterSelected)
+    driver = configureDriver(proxy)
+    driver.get('https://registration.ticketmaster.com/' + selected)
 
     actions = ActionChains(driver)
 
     clear()
     print("Now loading " + driver.title + "...")
 
-    ticketmasterLogin()
+    ticketmasterLogin(profile, module, selected)
 
-def shopifyModule():
+def shopifyProductFound():
+    r = requests.get(productUrl)
+    print(productUrl)
+    exit()
+
+def shopifyModule(profile, module, selected):
+    global productUrl
     proxies = readProxies()
     
     selectedProxy = getRandomProxy(proxies)
 
     clear()
-    shopifySelected = input("What website are we going for? ")
-    clear()
-    shopifySelectedUrl = 'https://www.' + shopifySelected + '.com/' + 'products.json'
+    shopifySelectedUrl = 'https://www.' + selected + '.com/' + 'products.json'
 
-    desiredProduct = input("What product do you want? ").lower()    
+    desiredProduct = input("What product do you want? ") 
     clear()
 
     print(f"Selected Proxy: {selectedProxy}")
 
-    r = requests.get(shopifySelectedUrl)
-    products = json.loads((r.text))['products']
-
     while True:
+        r = requests.get(shopifySelectedUrl)
+        products = json.loads(r.text)['products']
+
         found = False
 
         for product in products:
-            print(product['title'])
             productName = product['title'].lower()
-            
-        if desiredProduct in productName:
+
+            if desiredProduct.lower() in productName:
                 print("Checking for product.")
-                
                 found = True
-
-                print(productName)
                 print(f"Found product: {product['title']}")
+                productUrl = 'https://www.' + selected + '.com/products/' + product['handle']
+                shopifyProductFound()
 
-                break
-        else:
-            clear()
-
+        if not found:
             print(f"No product matching '{desiredProduct}' found. Waiting...")
             time.sleep(3.333)
-
-            continue
             
 
     clear() 
@@ -301,19 +272,57 @@ def shopifyModule():
 
     input("")
 
-def loadSite():
-    clear()
-    selectedModule = input("What module would you like to load? ")
+@app.command()
+def profile(profile: str, module: str, selected: str):
+    profileSelect(profile, module, selected)
 
-    if selectedModule.lower() == 'ticketmaster':
+def profileSelect(profile, module, selected):
+    global pName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone
+
+    
+
+    with open("profile_" + profile + ".txt", "r") as profile_file:
+        for line in profile_file:
+            print(line)
+
+            # Define basic variables from the selected profile.
+            if "Name:" in line:
+                pName = line.split("Name: ")[1].strip()
+            if "Email:" in line:
+                pEmail = line.split("Email: ")[1].strip()
+
+
+            # Define shipping variables from the selected profile.
+            if "Shipping Address:" in line:
+                pShippingAddress = line.split("Shipping Address: ")[1].strip()
+            # ... (other shipping variables)
+
+            # Define billing variables from the selected profile.
+            if "Billing Address:" in line:
+                pBillingAddress = line.split("Billing Address: ")[1].strip()
+            # ... (other billing variables)
+
+    clear()
+    
+    print("Your profile has been loaded.")
+
+    loadSite(profile, module, selected)
+
+def loadSite(profile, module, selected):
+    clear()
+
+    if module.lower() == 'ticketmaster':
         clear()
-        ticketmasterAccountDefine()
-    elif selectedModule.lower() == 'shopify':
-        print("Shopify module loading... ")
-        shopifyModule()
+        print("Ticketmaster Module Loading!")
+        ticketmasterAccountDefine(profile, module, selected)
+    elif module.lower() == 'shopify':
+        clear()
+        print("Shopify Module Loading!")
+        shopifyModule(profile, module, selected)
     else:
         print("Invalid module choice.")
         time.sleep(2.5)
-        loadSite()
+        exit()
 
-profileSelect()
+if __name__ == "__main__":
+    app()
