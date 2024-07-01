@@ -15,6 +15,14 @@ import platform
 import keyboard
 from universalclear import clear
 import typer
+import logging
+
+logging.basicConfig(
+    filename='automation.log',
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 app = typer.Typer()
 
@@ -54,7 +62,8 @@ def isTextPresent(text):
         elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
         WebDriverWait(driver, 10).until(elementPresent)
         return True
-    except:
+    except Exception as e:
+        print("Error whilst checking if text is present: ", e)
         return False
     
 def holdKeyforDuration(key, duration):
@@ -62,7 +71,7 @@ def holdKeyforDuration(key, duration):
     time.sleep(duration)
     keyboard.release(key)
 
-def ticketmasterAccountDefine(profile, module, selected):
+def loadTicketmasterAccounts(profile, module, selected):
     global ticketmasterAccountList
     
     ticketmasterAccountList = []
@@ -98,16 +107,16 @@ def getUnusedAccount():
 
 def ticketmasterLogin(profile, module, selected):
     try:
-        email_input = WebDriverWait(driver, 10).until(
+        emailInput = WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.NAME, 'email'))
         )
-        email_input.send_keys(email)
+        emailInput.send_keys(email)
         print("Email entered successfully.")
 
-        password_input = WebDriverWait(driver, 10).until(
+        passwordInput = WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.NAME, 'password'))
         )
-        password_input.send_keys(password)
+        passwordInput.send_keys(password)
         print("Password entered successfully.")
 
         signInButton = WebDriverWait(driver, 10).until(
@@ -144,70 +153,71 @@ def ticketmasterAntiBot(profile, module, selected):
                 EC.element_to_be_clickable((By.ID, 'company-logo'))
             )
             button.click()
-            print("Sign in started.")
+            logging.info("Sign in started.")
 
         except Exception as e:
             print("Failed to click the button: ", e)
 
-        while isTextPresent("Please verify you are a human"):
-            print("Trying first anti-bot!")
-            try:
-                time.sleep(5)
-                ActionChains(driver).key_down(Keys.TAB).key_up(Keys.TAB).perform()
-                time.sleep(1)
+        antibot_attempts = 0
+        max_attempts = 3
 
-                action = ActionChains(driver)
-                action.key_down(Keys.ENTER).pause(10).key_up(Keys.ENTER).perform()
-                print("Completed first anti-bot!")
-                time.sleep(2.5)
-                clear()
+        while antibot_attempts < max_attempts:
+            if isTextPresent("Please verify you are a human"):
+                print(f"Anti-bot attempt {antibot_attempts + 1} of {max_attempts}!")
 
-                if isTextPresent("Please verify you are a human"):
-                    print("Re-doing first anti-bot!")
-                    try:
-                        time.sleep(5)
-                        ActionChains(driver).key_down(Keys.TAB).key_up(Keys.TAB).perform()
-                        time.sleep(1)
+                try:
+                    time.sleep(5)
+                    ActionChains(driver).key_down(Keys.TAB).key_up(Keys.TAB).perform()
+                    time.sleep(1)
 
-                        action = ActionChains(driver)
-                        action.key_down(Keys.ENTER).pause(10).key_up(Keys.ENTER).perform()
-                        print("Completed first anti-bot again!")
-                        time.sleep(2.5)
-                        clear()
-                    except Exception as e:
-                        print("Failed to re-do the first anti-bot: ", e)
-                else:
-                    print("Passed anti-bot!")
+                    action = ActionChains(driver)
+                    action.key_down(Keys.ENTER).pause(10).key_up(Keys.ENTER).perform()
+                    print(f"Completed anti-bot attempt {antibot_attempts + 1}!")
                     time.sleep(2.5)
-                    ticketmasterLogin(profile, module, selected)
+                    clear()
 
-            except Exception as e:
-                print("Failed to do the first anti-bot: ", e)
+                    if isTextPresent("Please verify you are a human"):
+                        antibot_attempts += 1                        
+                        if antibot_attempts >= max_attempts:
+                            print(f"Exceeded {max_attempts} attempts. Quitting.")
+                            return  # Exit the function or script
 
-        ticketmasterLogin(profile, module, selected)
+                        print("Re-doing anti-bot!")
+                    else:
+                        print("Passed anti-bot!")
+                        time.sleep(2.5)
+                        ticketmasterLogin(profile, module, selected)
+
+                except Exception as e:
+                    print(f"Failed to do anti-bot attempt {antibot_attempts + 1}: {e}")
+
+        if antibot_attempts == 0:
+            print("No antibot verification required or successful.")
+            ticketmasterLogin(profile, module, selected)
 
     else:
         print("No unused accounts available.")
     
 def ticketmasterModule(profile, module, selected):
-    global driver, actions
     proxies = readProxies()
-    
     proxy = getRandomProxy(proxies)
 
-    clear()
+    logging.info(f"Selected Proxy: {proxy}")
 
+    clear()
     driver = configureDriver(proxy)
-    driver.get('https://registration.ticketmaster.com/' + selected)
+    driver.get(f'https://registration.ticketmaster.com/{selected}')
 
-    actions = ActionChains(driver)
+    try:
+        logging.info(f"Now loading {driver.title}...")
+        ticketmasterAntiBot(profile, module, selected)
 
-    clear()
+    except Exception as e:
+        logging.error(f"Error in Ticketmaster module: {e}")
 
-    print(f"Selected Proxy: {proxy}")
-    print("Now loading " + driver.title + "...")
+    finally:
+        driver.quit()
 
-    ticketmasterAntiBot(profile, module, selected)
 
 def shopifyCheckout():
     global driver, actions, wait
@@ -261,7 +271,7 @@ def shopifyCheckout():
                 checkbox = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Checkbox1']")))
                 checkbox.click() 
             except Exception as e:
-                print("Failed agreeing to the TOS: ", e)
+                print("Failed whilst agreeing to the TOS: ", e)
             #actions.send_keys(Keys.TAB).perform()
             #actions.send_keys(Keys.TAB).perform()
             #actions.send_keys(Keys.TAB).perform()
@@ -288,8 +298,6 @@ def shopifyAddToCart():
             
         except Exception as e:
             print("Failed to add to cart: ", e)
-
-    input("")
 
 def shopifyProductFound():
     proxies = readProxies()
@@ -418,7 +426,7 @@ def loadSite(profile, module, selected):
     if module.lower() == 'ticketmaster':
         clear()
         print("Ticketmaster Module Loading!")
-        ticketmasterAccountDefine(profile, module, selected)
+        loadTicketmasterAccounts(profile, module, selected)
     elif module.lower() == 'shopify':
         clear()
         print("Shopify Module Loading!")
@@ -430,3 +438,5 @@ def loadSite(profile, module, selected):
 
 if __name__ == "__main__":
     app()
+    ticketmasterModule("profile", "ticketmaster", "selected")
+    logging.shutdown()
