@@ -40,11 +40,18 @@ def readProxies():
     return proxies
 
 def getRandomProxy(proxies):
-    return random.choice(proxies)
+    if proxies:
+        return random.choice(proxies)
+    else:
+        print("No proxies found. Running without proxy.")
+        return None
 
 def configureDriver(proxy):
     chromeOptions = Options()
-    chromeOptions.add_argument('--proxy-server=%s' % proxy)
+    
+    if proxy:
+        chromeOptions.add_argument('--proxy-server=%s' % proxy)
+    
     chromeOptions.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 14.4; rv:124.0) Gecko/20100101 Firefox/124.0")
 
     driver = webdriver.Chrome(options=chromeOptions)
@@ -247,11 +254,6 @@ def ticketmasterLogin():
 def ticketmasterModule():
     global driver, actions
     proxies = readProxies()
-
-    if not proxies:
-        print("No proxies found in proxies file...")
-        time.sleep(2.5)
-        return
     
     selectedProxy = getRandomProxy(proxies)
 
