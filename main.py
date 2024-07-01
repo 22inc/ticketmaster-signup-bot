@@ -40,7 +40,7 @@ pBillingPhone = ""
 driver = ""
 
 def readProxies():
-    with open('proxies.txt', 'r') as file:
+    with open('files/proxies.txt', 'r') as file:
         proxies = [line.strip() for line in file if line.strip()]
     return proxies
 
@@ -85,7 +85,7 @@ def ticketmasterAccountDefine(profile, module, selected):
     ticketmasterAccountList = []
 
     # Read the accounts from the file and store them as tuples in a list
-    with open("ticketmaster_accounts.txt", "r") as file:
+    with open("files/ticketmaster_accounts.txt", "r") as file:
         for line in file:
             # Split the line into email and password
             email, password = line.strip().split(":")
@@ -103,10 +103,10 @@ def ticketmasterAccountDefine(profile, module, selected):
 
 def markAccountAsUsed(email, password):
     # Mark an account as used by adding a '#' in front of it in the file
-    with open("ticketmaster_accounts.txt", "r") as file:
+    with open("files/ticketmaster_accounts.txt", "r") as file:
         lines = file.readlines()
 
-    with open("ticketmaster_accounts.txt", "w") as file:
+    with open("files/ticketmaster_accounts.txt", "w") as file:
         for line in lines:
             if f"{email}:{password}" in line:
                 line = "#" + line.lstrip('#')
@@ -278,7 +278,7 @@ def profileSelect(profile, module, selected):
 
     
 
-    with open("profile_" + profile + ".txt", "r") as profile_file:
+    with open("files/profile_" + profile + ".txt", "r") as profile_file:
         for line in profile_file:
             print(line)
 
