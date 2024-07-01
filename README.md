@@ -5,6 +5,7 @@ This Python script is designed for automating interactions with web services lik
 # Features
 
 Ticketmaster Module: Automates account login and interaction with Ticketmaster registration pages.
+
 Shopify Module: Searches for specific products on Shopify stores via their JSON API.
 
 # Dependencies
