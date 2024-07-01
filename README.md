@@ -53,3 +53,5 @@ Follow the prompts to execute the desired automation tasks.
 
 This script assumes you have valid accounts for Ticketmaster (ticketmaster_accounts.txt).
 Ensure your profiles and account details are correctly formatted as per the script's requirements.
+
+# Developed with love by Malik Hassan!

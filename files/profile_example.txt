@@ -15,4 +15,8 @@ Billing Zip Code: 90001
 Billing State: CA
 Billing Phone: 1234567890
 
-pName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone
+Card Number: 4111111111111111
+Expiration Date: 01/2030
+Security Code: 123
+
+pName, pEmail, pFirstName, pLastName, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone, pCardNumber, pExpirationDate, pSecurityCode

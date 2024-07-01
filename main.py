@@ -22,22 +22,7 @@ app = typer.Typer()
 
 ticketmasterAccountList = []
 
-pName = ""
-pEmail = ""
-pShippingAddress = ""
-pShippingSecondary = ""
-pShippingCity = ""
-pShippingZipCode = ""
-pShippingState = ""
-pShippingPhone = ""
-pBillingAddress = ""
-pBillingSecondary = ""
-pBillingCity = ""
-pBillingZipCode = ""
-pBillingState = ""
-pBillingPhone = ""
-
-driver = ""
+global pName, pEmail, pFirstName, pLastName, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone, pCardNumber, pExpirationDate, pSecurityCode, driver
 
 def readProxies():
     with open('files/proxies.txt', 'r') as file:
@@ -66,7 +51,6 @@ def configureDriver(proxy):
 
 def isTextPresent(text):
     try:
-        # Wait for up to 10 seconds for the text to be present
         elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
         WebDriverWait(driver, 10).until(elementPresent)
         return True
@@ -81,17 +65,13 @@ def holdKeyforDuration(key, duration):
 def ticketmasterAccountDefine(profile, module, selected):
     global ticketmasterAccountList
     
-    # Clear the list first
     ticketmasterAccountList = []
 
-    # Read the accounts from the file and store them as tuples in a list
     with open("files/ticketmaster_accounts.txt", "r") as file:
         for line in file:
-            # Split the line into email and password
             email, password = line.strip().split(":")
             account = (email, password)
             
-            # Append the account to the list
             ticketmasterAccountList.append(account)
 
     print("Accounts loaded:", ticketmasterAccountList)
@@ -102,7 +82,6 @@ def ticketmasterAccountDefine(profile, module, selected):
 
 
 def markAccountAsUsed(email, password):
-    # Mark an account as used by adding a '#' in front of it in the file
     with open("files/ticketmaster_accounts.txt", "r") as file:
         lines = file.readlines()
 
@@ -118,91 +97,97 @@ def getUnusedAccount():
     return None, None
 
 def ticketmasterLogin(profile, module, selected):
-    global driver, actions
+    try:
+        email_input = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.NAME, 'email'))
+        )
+        email_input.send_keys(email)
+        print("Email entered successfully.")
+
+        password_input = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.NAME, 'password'))
+        )
+        password_input.send_keys(password)
+        print("Password entered successfully.")
+
+        signInButton = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//span[text()='Sign in']"))
+        )
+        signInButton.click()
+        print("Sign in button clicked.")
+
+        time.sleep(5)
+
+        while isTextPresent("Let's Get Your Identity Verified"):
+            time.sleep(5)
+            holdKeyforDuration('enter', 10)
+            print("Second anti-bot done successfully.")
+            return
+
+    except Exception as e:
+        print("Failed during login: ", e)
+
+    print("Login process completed successfully.")
+
+    input("Press Enter to continue...")
+
+    markAccountAsUsed(email, password)
+
+def ticketmasterAntiBot(profile, module, selected):
+    global driver, actions, email, password
 
     email, password = getUnusedAccount()
 
     if email is not None:
         try:
             button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, 'company-logo'))
+                EC.element_to_be_clickable((By.ID, 'company-logo'))
             )
             button.click()
-            print("Button clicked successfully.")
+            print("Sign in started.")
 
         except Exception as e:
             print("Failed to click the button: ", e)
 
-        try:
-            time.sleep(5)
-            while isTextPresent("Let's Get Your Identity Verified"):
+        while isTextPresent("Please verify you are a human"):
+            print("Trying first anti-bot!")
+            try:
                 time.sleep(5)
-                holdKeyforDuration('enter', 10)
-                print("First anti-bot done succesfuly.")
-                return
-            
-            #actions.send_keys(Keys.TAB).perform()
-            #time.sleep(5)
-            #holdKeyforDuration('enter', 10)
-            #print("Second anti-bot done succesfuly.")
+                ActionChains(driver).key_down(Keys.TAB).key_up(Keys.TAB).perform()
+                time.sleep(1)
 
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
+                action = ActionChains(driver)
+                action.key_down(Keys.ENTER).pause(10).key_up(Keys.ENTER).perform()
+                print("Completed first anti-bot!")
+                time.sleep(2.5)
+                clear()
 
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
+                if isTextPresent("Please verify you are a human"):
+                    print("Re-doing first anti-bot!")
+                    try:
+                        time.sleep(5)
+                        ActionChains(driver).key_down(Keys.TAB).key_up(Keys.TAB).perform()
+                        time.sleep(1)
 
-            actions.send_keys(email).perform()
-            time.sleep(1)
-        
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
+                        action = ActionChains(driver)
+                        action.key_down(Keys.ENTER).pause(10).key_up(Keys.ENTER).perform()
+                        print("Completed first anti-bot again!")
+                        time.sleep(2.5)
+                        clear()
+                    except Exception as e:
+                        print("Failed to re-do the first anti-bot: ", e)
+                else:
+                    print("Passed anti-bot!")
+                    time.sleep(2.5)
+                    ticketmasterLogin(profile, module, selected)
 
-            actions.send_keys(password).perform()
-            time.sleep(1)
-            
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
+            except Exception as e:
+                print("Failed to do the first anti-bot: ", e)
 
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
-    
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
-    
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
-    
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
-
-            print("Details entered successfully.")
-
-            signInButton = driver.find_element(By.XPATH, "//span[text()='Sign in']")
-            signInButton.click()
-            print("Sign in button clicked.")
-
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(1)
-
-            while isTextPresent("Let's Get Your Identity Verified"):
-                time.sleep(5)
-                holdKeyforDuration('enter', 10)
-                print("Second anti-bot done succesfuly.")
-                return
-
-
-        except Exception as e:
-            print("Failed to enter email: ", e)
-        
-        print("Anti-bot done successfully.")
+        ticketmasterLogin(profile, module, selected)
 
     else:
         print("No unused accounts available.")
-
-    input("")
-
-    markAccountAsUsed(email, password)
     
 def ticketmasterModule(profile, module, selected):
     global driver, actions
@@ -212,22 +197,119 @@ def ticketmasterModule(profile, module, selected):
 
     clear()
 
-    print(f"Selected Proxy: {proxy}")
-
     driver = configureDriver(proxy)
     driver.get('https://registration.ticketmaster.com/' + selected)
 
     actions = ActionChains(driver)
 
     clear()
+
+    print(f"Selected Proxy: {proxy}")
     print("Now loading " + driver.title + "...")
 
-    ticketmasterLogin(profile, module, selected)
+    ticketmasterAntiBot(profile, module, selected)
+
+def shopifyCheckout():
+    global driver, actions, wait
+    actions = ActionChains(driver)
+
+    if productUrl is not None:
+        try:
+            checkoutButton = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[text()='Checkout']")))
+
+            checkoutButton.click()
+            print("Checkout initiated.")
+
+            actions.send_keys(pEmail).perform()            
+            actions.send_keys(Keys.TAB).perform()            
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pFirstName).perform()            
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pLastName).perform()            
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pShippingAddress).perform()   
+            actions.send_keys(Keys.TAB).perform()     
+            actions.send_keys(pShippingSecondary).perform()   
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pShippingCity).perform()    
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pShippingState).perform() 
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pShippingZipCode).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pShippingPhone).perform()   
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+
+            print("Shipping details filled.")
+
+            actions.send_keys(pCardNumber).perform() 
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pExpirationDate).perform()   
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(pSecurityCode).perform()   
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            actions.send_keys(Keys.TAB).perform()
+            try:
+                checkbox = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Checkbox1']")))
+                checkbox.click() 
+            except Exception as e:
+                print("Failed agreeing to the TOS: ", e)
+            #actions.send_keys(Keys.TAB).perform()
+            #actions.send_keys(Keys.TAB).perform()
+            #actions.send_keys(Keys.TAB).perform()
+            time.sleep(5)
+            print("Ready to checkout!")
+            #checkout time
+
+        except Exception as e:
+            print("Failed to initiate the checkout: ", e)
+
+def shopifyAddToCart():
+    global driver, actions, wait
+
+    if productUrl is not None:
+        try:
+
+            wait = WebDriverWait(driver, 10)
+            addToCartButton = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[text()='Add to Cart']")))
+
+            addToCartButton.click()
+            print("Add to cart initiated.")
+
+            shopifyCheckout()
+            
+        except Exception as e:
+            print("Failed to add to cart: ", e)
+
+    input("")
 
 def shopifyProductFound():
-    r = requests.get(productUrl)
+    proxies = readProxies()
+    
+    proxy = getRandomProxy(proxies)
+    
+    clear()
+
+    driver = configureDriver(proxy)
+    driver.get(productUrl)
+
+    clear()
+
+    print(f"Selected Proxy: {proxy}")
+    print("Now loading " + driver.title + "...")
     print(productUrl)
-    exit()
+
+    time.sleep(2.5)
+    shopifyAddToCart()
+
 
 def shopifyModule(profile, module, selected):
     global productUrl
@@ -236,7 +318,7 @@ def shopifyModule(profile, module, selected):
     selectedProxy = getRandomProxy(proxies)
 
     clear()
-    shopifySelectedUrl = 'https://www.' + selected + '.com/' + 'products.json'
+    shopifySelectedUrl = 'https://' + selected + '.com/' + 'products.json'
 
     desiredProduct = input("What product do you want? ") 
     clear()
@@ -257,24 +339,19 @@ def shopifyModule(profile, module, selected):
                 found = True
                 print(f"Found product: {product['title']}")
                 productUrl = 'https://www.' + selected + '.com/products/' + product['handle']
+                time.sleep(2.5)
                 shopifyProductFound()
 
         if not found:
             print(f"No product matching '{desiredProduct}' found. Waiting...")
             time.sleep(3.333)
-            
-
-    clear() 
-    # print("Now loading " + driver.title + "...")
-
-    input("")
 
 @app.command()
 def profile(profile: str, module: str, selected: str):
     profileSelect(profile, module, selected)
 
 def profileSelect(profile, module, selected):
-    global pName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone
+    global pName, pFirstName, pLastName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone,  pCardNumber, pExpirationDate, pSecurityCode
 
     
 
@@ -282,22 +359,52 @@ def profileSelect(profile, module, selected):
         for line in profile_file:
             print(line)
 
-            # Define basic variables from the selected profile.
             if "Name:" in line:
                 pName = line.split("Name: ")[1].strip()
+                name_parts = pName.split(' ')
+                if len(name_parts) >= 2:
+                    pFirstName = name_parts[0]
+                    pLastName = name_parts[1]
+                else:
+                    print("Profile First Name / Last Name not filled out correctly!")
             if "Email:" in line:
                 pEmail = line.split("Email: ")[1].strip()
+                
 
 
-            # Define shipping variables from the selected profile.
             if "Shipping Address:" in line:
                 pShippingAddress = line.split("Shipping Address: ")[1].strip()
-            # ... (other shipping variables)
+            if "Shipping Secondary:" in line:
+                pShippingSecondary = line.split("Shipping Secondary: ")[1].strip()
+            if "Shipping City:" in line:
+                pShippingCity = line.split("Shipping City: ")[1].strip()
+            if "Shipping Zip Code:" in line:
+                pShippingZipCode = line.split("Shipping Zip Code: ")[1].strip()
+            if "Shipping State:" in line:
+                pShippingState = line.split("Shipping State: ")[1].strip()
+            if "Shipping Phone:" in line:
+                pShippingPhone = line.split("Shipping Phone: ")[1].strip()
 
-            # Define billing variables from the selected profile.
             if "Billing Address:" in line:
                 pBillingAddress = line.split("Billing Address: ")[1].strip()
-            # ... (other billing variables)
+            if "Billing Secondary:" in line:
+                pBillingSecondary = line.split("Billing Secondary: ")[1].strip()
+            if "Billing City:" in line:
+                pBillingCity = line.split("Billing City: ")[1].strip()
+            if "Billing Zip Code:" in line:
+                pBillingZipCode = line.split("Billing Zip Code: ")[1].strip()
+            if "Billing State:" in line:
+                pBillingState = line.split("Billing State: ")[1].strip()
+            if "Billing Phone:" in line:
+                pBillingPhone = line.split("Billing Phone: ")[1].strip()
+            
+            if "Card Number:" in line:
+                pCardNumber = line.split("Card Number: ")[1].strip()
+            if "Expiration Date:" in line:
+                pExpirationDate = line.split("Expiration Date: ")[1].strip()
+            if "Security Code:" in line:
+                pSecurityCode = line.split("Security Code: ")[1].strip()
+
 
     clear()
     
