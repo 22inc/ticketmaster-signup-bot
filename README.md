@@ -9,13 +9,7 @@ Shopify Module: Searches for specific products on Shopify stores via their JSON 
 
 # Dependencies
 
-Python 3.x
-chromedriver_autoinstaller
-selenium
-requests
-keyboard
-universalclear
-typer
+Python 3.x AND requirements.txt
 
 # Installation
 
