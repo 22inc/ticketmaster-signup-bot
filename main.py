@@ -1,6 +1,8 @@
 import os
 import time
 import random
+import requests
+import json
 import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -11,11 +13,10 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
 import platform
 import keyboard
-
+from universalclear import clear
 
 # chromedriver_autoinstaller.install()
 
-clearCommand = ""
 pName = ""
 pEmail = ""
 pShippingAddress = ""
@@ -52,7 +53,7 @@ def configureDriver(proxy):
     if proxy:
         chromeOptions.add_argument('--proxy-server=%s' % proxy)
     
-    chromeOptions.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 14.4; rv:124.0) Gecko/20100101 Firefox/124.0")
+ #   chromeOptions.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 14.4; rv:124.0) Gecko/20100101 Firefox/124.0")
 
     driver = webdriver.Chrome(options=chromeOptions)
 
@@ -72,26 +73,10 @@ def holdKeyforDuration(key, duration):
     time.sleep(duration)
     keyboard.release(key)
 
-def identifyOS():
-    global clearCommand
-
-    if platform.system() == "Linux" or platform.system() == "Darwin":
-        clearCommand = "clear"
-        print("Mac or Linux System")
-        profileSelect()
-
-    elif platform.system() == "Windows":
-        clearCommand = "cls"
-        print("Windows System")
-        profileSelect()
-    
-    else:
-        return "Unknown OS, this program will not work for you."
-
 def profileSelect():
     global pName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone
 
-    os.system(clearCommand)
+    clear()
     profile = input("Which profile would you like to use? ")
 
     with open("profile_" + profile + ".txt", "r") as profile_file:
@@ -114,7 +99,7 @@ def profileSelect():
                 pBillingAddress = line.split("Billing Address: ")[1].strip()
             # ... (other billing variables)
 
-    os.system(clearCommand)
+        clear()
     print("Your profile has been loaded.")
     
     loadSite()
@@ -135,10 +120,10 @@ def ticketmasterAccountDefine():
         for account in ticketmasterAccountList:
             print(account)
 
-    os.system(clearCommand)    
+    clear()    
 
     print("Accounts loaded.")
-    os.system(clearCommand)
+    clear()
 
     print("Ticketmaster module loading...")
     ticketmasterModule()
@@ -187,13 +172,7 @@ def ticketmasterLogin():
             #actions.send_keys(Keys.TAB).perform()
             #time.sleep(5)
             #holdKeyforDuration('enter', 10)
-            #print("First anti-bot done succesfuly.")
-
-            time.sleep(10)
-            actions.send_keys(Keys.TAB).perform()
-            holdKeyforDuration('enter', 10)
-            print("Second anti-bot done succesfuly.")
-            time.sleep(5)
+            #print("Second anti-bot done succesfuly.")
 
             actions.send_keys(Keys.TAB).perform()
             time.sleep(1)
@@ -233,11 +212,12 @@ def ticketmasterLogin():
 
             time.sleep(2.5)
 
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.RETURN).perform()
-            time.sleep(10)
+            while isTextPresent("Let's Get Your Identity Verified"):
+                time.sleep(5)
+                holdKeyforDuration('enter', 10)
+                print("Second anti-bot done succesfuly.")
+                return
 
-            actions.send_keys(Keys.TAB).perform()
 
         except Exception as e:
             print("Failed to enter email: ", e)
@@ -257,9 +237,9 @@ def ticketmasterModule():
     
     selectedProxy = getRandomProxy(proxies)
 
-    os.system(clearCommand)
+    clear()
     ticketmasterSelected = input("What/who are we going for? ")
-    os.system(clearCommand)
+    clear()
 
     print(f"Selected Proxy: {selectedProxy}")
 
@@ -268,23 +248,72 @@ def ticketmasterModule():
 
     actions = ActionChains(driver)
 
-    os.system(clearCommand) 
+    clear()
     print("Now loading " + driver.title + "...")
 
     ticketmasterLogin()
 
+def shopifyModule():
+    proxies = readProxies()
+    
+    selectedProxy = getRandomProxy(proxies)
+
+    clear()
+    shopifySelected = input("What website are we going for? ")
+    clear()
+    shopifySelectedUrl = 'https://www.' + shopifySelected + '.com/' + 'products.json'
+
+    desiredProduct = input("What product do you want? ").lower()    
+    clear()
+
+    print(f"Selected Proxy: {selectedProxy}")
+
+    r = requests.get(shopifySelectedUrl)
+    products = json.loads((r.text))['products']
+
+    while True:
+        found = False
+
+        for product in products:
+            print(product['title'])
+            productName = product['title'].lower()
+            
+        if desiredProduct in productName:
+                print("Checking for product.")
+                
+                found = True
+
+                print(productName)
+                print(f"Found product: {product['title']}")
+
+                break
+        else:
+            clear()
+
+            print(f"No product matching '{desiredProduct}' found. Waiting...")
+            time.sleep(3.333)
+
+            continue
+            
+
+    clear() 
+    # print("Now loading " + driver.title + "...")
+
+    input("")
+
 def loadSite():
-    os.system(clearCommand)
+    clear()
     selectedModule = input("What module would you like to load? ")
 
     if selectedModule.lower() == 'ticketmaster':
-        os.system(clearCommand)
+        clear()
         ticketmasterAccountDefine()
     elif selectedModule.lower() == 'shopify':
         print("Shopify module loading... ")
+        shopifyModule()
     else:
         print("Invalid module choice.")
         time.sleep(2.5)
         loadSite()
 
-identifyOS()
+profileSelect()
