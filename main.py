@@ -1,6 +1,3 @@
-# ARGS AND RUN COMMAND
-# typer (filename).py run YOUR_PROFILE_NAME DECLARED_MODULE PERSON/EVENT/WEBSITE
-
 import os
 import time
 import random
