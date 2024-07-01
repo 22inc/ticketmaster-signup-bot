@@ -42,8 +42,11 @@ typer (filename).py run (your_profile_name) (wanted_module) (destination)
 ```
 
 Profile Name: Name of the profile file without extension (e.g., example for profile_example.txt).
+
 Module: Specify either Ticketmaster or Shopify.
+
 Destination: Specific site or event identifier (e.g., website for shopify or event/performer name for ticketmaster).
+
 Follow the prompts to execute the desired automation tasks.
 
 # Notes
