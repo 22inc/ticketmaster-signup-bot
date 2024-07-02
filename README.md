@@ -17,8 +17,8 @@ Python 3.x AND requirements.txt
 Clone the repository:
 
 ```bash
-git clone https://github.com/your/repository.git
-cd repository
+git clone https://github.com/mhassannco/ticketmaster-signup-bot.git
+cd ticketmaster-signup-bot
 ```
 
 Install dependencies:
