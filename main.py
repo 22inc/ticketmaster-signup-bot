@@ -78,24 +78,30 @@ def configureDriver(proxy: Optional[str] = None) -> webdriver.Chrome:
         print(f"An error occurred while configuring the WebDriver: {e}")
         raise
 
-def isTextPresent(driver: webdriver.Chrome, text: str) -> bool:
+def isTextPresent(driver: webdriver.Chrome, text: str, email: str, password: str, retries: int = 3) -> bool:
     """
     Checks if the specified text is present on the web page.
 
     Args:
         driver (webdriver.Chrome): The WebDriver instance.
         text (str): The text to search for.
+        email (str): The email to use for login retry.
+        password (str): The password to use for login retry.
+        retries (int): The number of times to retry checking for the text.
 
     Returns:
         bool: True if the text is present, False otherwise.
     """
-    try:
-        elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
-        WebDriverWait(driver, 10).until(elementPresent)
-        return True
-    except Exception as e:
-        print(f"Error while checking if text is present: {e}")
-        return False
+    for attempt in range(retries):
+        try:
+            elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
+            WebDriverWait(driver, 10).until(elementPresent)
+            return True
+        except Exception as e:
+            print("First Anti-bot not detected, moving on to login!")
+            ticketmasterLogin(driver, email, password)
+    print(f"Failed to find text '{text}' after {retries} retries.")
+    return False
 
 def holdKeyforDuration(key: str, duration: float):
     """
@@ -208,7 +214,7 @@ def ticketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
         print(f"Failed to click sign in button: {e}")
 
     try:
-        while isTextPresent(driver, "Let's Get Your Identity Verified"):
+        while isTextPresent(driver, "Please verify you are a human", email, password):
             time.sleep(5)
             action = ActionChains(driver)
             action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
@@ -218,7 +224,6 @@ def ticketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
     except Exception as e:
         print(f"Error during second anti-bot process: {e}")
     print("Login process completed successfully.")
-    input("Press Enter to continue...")
 
 def ticketmasterAntiBot(driver: webdriver.Chrome):
     """
@@ -240,7 +245,7 @@ def ticketmasterAntiBot(driver: webdriver.Chrome):
         max_attempts = 3
 
         while antibot_attempts < max_attempts:
-            if isTextPresent(driver, "Please verify you are a human"):
+            if isTextPresent(driver, "Please verify you are a human", email, password):
                 print(f"Anti-bot attempt {antibot_attempts + 1} of {max_attempts}!")
                 try:
                     time.sleep(5)
@@ -251,7 +256,7 @@ def ticketmasterAntiBot(driver: webdriver.Chrome):
                     print(f"Completed anti-bot attempt {antibot_attempts + 1}!")
                     time.sleep(5)
                     clear()
-                    if isTextPresent(driver, "Please verify you are a human"):
+                    if isTextPresent(driver, "Please verify you are a human", email, password):
                         antibot_attempts += 1
                         if antibot_attempts >= max_attempts:
                             print(f"Exceeded {max_attempts} attempts. Quitting.")
