@@ -121,7 +121,9 @@ def ticketmasterLogin(profile, module, selected):
 
         while isTextPresent("Let's Get Your Identity Verified"):
             time.sleep(5)
-            holdKeyforDuration('enter', 10)
+            action = ActionChains(driver)
+            action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
+            time.sleep(5)
             print("Second anti-bot done successfully.")
             return
 
@@ -163,9 +165,9 @@ def ticketmasterAntiBot(profile, module, selected):
                     time.sleep(1)
 
                     action = ActionChains(driver)
-                    action.key_down(Keys.ENTER).pause(10).key_up(Keys.ENTER).perform()
+                    action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
                     print(f"Completed anti-bot attempt {antibot_attempts + 1}!")
-                    time.sleep(2.5)
+                    time.sleep(5)
                     clear()
 
                     if isTextPresent("Please verify you are a human"):
