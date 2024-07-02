@@ -96,9 +96,10 @@ def isTextPresent(driver: webdriver.Chrome, text: str, email: str, password: str
         try:
             elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
             WebDriverWait(driver, 10).until(elementPresent)
+            print("Found the text! Sending to the next process.")
             return True
         except Exception as e:
-            print("First Anti-bot not detected, moving on to login!")
+            print("Text not detected, moving on to the next process!")
             ticketmasterLogin(driver, email, password)
     print(f"Failed to find text '{text}' after {retries} retries.")
     return False
@@ -349,15 +350,20 @@ def shopifyCheckout(driver: webdriver.Chrome, profile: dict):
         actions.send_keys(Keys.TAB).perform()
         actions.send_keys(profile["SecurityCode"]).perform()
         actions.send_keys(Keys.TAB * 7).perform()
+        print("Payment details filled.")
     except Exception as e:
         print(f"Failed to fill payment details: {e}")
         return
 
     try:
-        checkbox = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Checkbox1']")))
-        checkbox.click()
+        checkbox = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "Checkbox1")))
+        driver.execute_script("arguments[0].scrollIntoView(true);", checkbox)
+        time.sleep(1)
+        driver.execute_script("arguments[0].click();", checkbox)
+        print("Checkbox clicked successfully.")
     except Exception as e:
         print(f"Failed while agreeing to the TOS: {e}")
+
     time.sleep(5)
     print("Ready to checkout!")
 
