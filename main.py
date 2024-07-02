@@ -11,412 +11,517 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
-import platform
 import keyboard
 from universalclear import clear
 import typer
+from typing import List, Tuple, Optional
 
 app = typer.Typer()
 
-# chromedriver_autoinstaller.install()
+ticketmasterAccountList: List[Tuple[str, str]] = []
 
-ticketmasterAccountList = []
+def readProxies() -> List[str]:
+    """
+    Reads proxy addresses from a file and returns them as a list.
 
-global pName, pEmail, pFirstName, pLastName, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone, pCardNumber, pExpirationDate, pSecurityCode, driver
+    Returns:
+        List[str]: A list of proxy addresses.
+    """
+    try:
+        with open('files/proxies.txt', 'r') as file:
+            proxies = [line.strip() for line in file if line.strip()]
+        return proxies
+    except FileNotFoundError:
+        print("Proxies file not found. Ensure 'files/proxies.txt' exists.")
+        return []
+    except Exception as e:
+        print(f"An error occurred while reading proxies: {e}")
+        return []
 
-def readProxies():
-    with open('files/proxies.txt', 'r') as file:
-        proxies = [line.strip() for line in file if line.strip()]
-    return proxies
+def getRandomProxy(proxies: List[str]) -> Optional[str]:
+    """
+    Selects a random proxy from the list of proxies.
 
-def getRandomProxy(proxies):
-    if proxies:
-        return random.choice(proxies)
-    else:
-        print("No proxies found. Running without proxy.")
+    Args:
+        proxies (List[str]): A list of proxy addresses.
+
+    Returns:
+        Optional[str]: A random proxy address or None if the list is empty.
+    """
+    try:
+        if proxies:
+            return random.choice(proxies)
+        else:
+            print("No proxies found. Running without proxy.")
+            return None
+    except Exception as e:
+        print(f"An error occurred while selecting a proxy: {e}")
         return None
 
-def configureDriver(proxy):
-    global driver
-    chromeOptions = Options()
-    
-    if proxy:
-        chromeOptions.add_argument('--proxy-server=%s' % proxy)
-    
- #   chromeOptions.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 14.4; rv:124.0) Gecko/20100101 Firefox/124.0")
+def configureDriver(proxy: Optional[str] = None) -> webdriver.Chrome:
+    """
+    Configures and returns a Chrome WebDriver instance.
 
-    driver = webdriver.Chrome(options=chromeOptions)
+    Args:
+        proxy (Optional[str], optional): Proxy address to be used. Defaults to None.
 
-    return driver
+    Returns:
+        webdriver.Chrome: Configured Chrome WebDriver instance.
+    """
+    try:
+        chromeOptions = Options()
+        if proxy:
+            chromeOptions.add_argument(f'--proxy-server={proxy}')
+        driver = webdriver.Chrome(options=chromeOptions)
+        return driver
+    except Exception as e:
+        print(f"An error occurred while configuring the WebDriver: {e}")
+        raise
 
-def isTextPresent(text):
+def isTextPresent(driver: webdriver.Chrome, text: str) -> bool:
+    """
+    Checks if the specified text is present on the web page.
+
+    Args:
+        driver (webdriver.Chrome): The WebDriver instance.
+        text (str): The text to search for.
+
+    Returns:
+        bool: True if the text is present, False otherwise.
+    """
     try:
         elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
         WebDriverWait(driver, 10).until(elementPresent)
         return True
     except Exception as e:
-        print("Error whilst checking if text is present: ", e)
+        print(f"Error while checking if text is present: {e}")
         return False
-    
-def holdKeyforDuration(key, duration):
-    keyboard.press(key)
-    time.sleep(duration)
-    keyboard.release(key)
 
-def loadTicketmasterAccounts(profile, module, selected):
-    global ticketmasterAccountList
-    
-    ticketmasterAccountList = []
+def holdKeyforDuration(key: str, duration: float):
+    """
+    Holds down a keyboard key for a specified duration.
 
-    with open("files/ticketmaster_accounts.txt", "r") as file:
-        for line in file:
-            email, password = line.strip().split(":")
-            account = (email, password)
-            
-            ticketmasterAccountList.append(account)
-
-    print("Accounts loaded:", ticketmasterAccountList)
-    time.sleep(1)
-    clear()
-    print("Ticketmaster module loading...")
-    ticketmasterModule(profile, module, selected)
-
-
-def markAccountAsUsed(email, password):
-    with open("files/ticketmaster_accounts.txt", "r") as file:
-        lines = file.readlines()
-
-    with open("files/ticketmaster_accounts.txt", "w") as file:
-        for line in lines:
-            if f"{email}:{password}" in line:
-                line = "#" + line.lstrip('#')
-            file.write(line)
-
-def getUnusedAccount():
-    for email, password in ticketmasterAccountList:
-        return email, password
-    return None, None
-
-def ticketmasterLogin(profile, module, selected):
+    Args:
+        key (str): The key to be held down.
+        duration (float): The duration in seconds to hold the key down.
+    """
     try:
-        emailInput = WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((By.NAME, 'email'))
-        )
+        keyboard.press(key)
+        time.sleep(duration)
+        keyboard.release(key)
+    except Exception as e:
+        print(f"Error while holding key for duration: {e}")
+
+def loadTicketmasterAccounts(profile: str, module: str, selected: str):
+    """
+    Loads Ticketmaster accounts from a file and starts the Ticketmaster module.
+
+    Args:
+        profile (str): The profile name.
+        module (str): The module name.
+        selected (str): The selected event or action.
+    """
+    global ticketmasterAccountList
+    try:
+        ticketmasterAccountList = []
+        with open("files/ticketmaster_accounts.txt", "r") as file:
+            for line in file:
+                email, password = line.strip().split(":")
+                ticketmasterAccountList.append((email, password))
+        print("Accounts loaded:", ticketmasterAccountList)
+        time.sleep(1)
+        clear()
+        print("Ticketmaster module loading...")
+        ticketmasterModule(profile, module, selected)
+    except FileNotFoundError:
+        print("Ticketmaster accounts file not found. Ensure 'files/ticketmaster_accounts.txt' exists.")
+    except Exception as e:
+        print(f"An error occurred while loading Ticketmaster accounts: {e}")
+
+def markAccountAsUsed(email: str, password: str):
+    """
+    Marks a Ticketmaster account as used by commenting it out in the file.
+
+    Args:
+        email (str): The email of the account.
+        password (str): The password of the account.
+    """
+    try:
+        with open("files/ticketmaster_accounts.txt", "r") as file:
+            lines = file.readlines()
+        with open("files/ticketmaster_accounts.txt", "w") as file:
+            for line in lines:
+                if f"{email}:{password}" in line:
+                    line = "#" + line.lstrip('#')
+                file.write(line)
+    except FileNotFoundError:
+        print("Ticketmaster accounts file not found. Ensure 'files/ticketmaster_accounts.txt' exists.")
+    except Exception as e:
+        print(f"An error occurred while marking account as used: {e}")
+
+def getUnusedAccount() -> Tuple[Optional[str], Optional[str]]:
+    """
+    Retrieves an unused Ticketmaster account.
+
+    Returns:
+        Tuple[Optional[str], Optional[str]]: The email and password of an unused account or (None, None) if no unused accounts are available.
+    """
+    try:
+        for email, password in ticketmasterAccountList:
+            return email, password
+        return None, None
+    except Exception as e:
+        print(f"An error occurred while getting an unused account: {e}")
+        return None, None
+
+def ticketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
+    """
+    Logs into Ticketmaster using the provided email and password.
+
+    Args:
+        driver (webdriver.Chrome): The WebDriver instance.
+        email (str): The email of the Ticketmaster account.
+        password (str): The password of the Ticketmaster account.
+    """
+    try:
+        emailInput = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.NAME, 'email')))
         emailInput.send_keys(email)
         print("Email entered successfully.")
+    except Exception as e:
+        print(f"Failed to enter email: {e}")
+        return
 
-        passwordInput = WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((By.NAME, 'password'))
-        )
+    try:
+        passwordInput = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.NAME, 'password')))
         passwordInput.send_keys(password)
         print("Password entered successfully.")
+    except Exception as e:
+        print(f"Failed to enter password: {e}")
+        return
 
-        signInButton = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//span[text()='Sign in']"))
-        )
+    try:
+        signInButton = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Sign in']")))
         signInButton.click()
         print("Sign in button clicked.")
-
         time.sleep(5)
+    except Exception as e:
+        print(f"Failed to click sign in button: {e}")
 
-        while isTextPresent("Let's Get Your Identity Verified"):
+    try:
+        while isTextPresent(driver, "Let's Get Your Identity Verified"):
             time.sleep(5)
             action = ActionChains(driver)
             action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
             time.sleep(5)
             print("Second anti-bot done successfully.")
             return
-
     except Exception as e:
-        print("Failed during login: ", e)
-
+        print(f"Error during second anti-bot process: {e}")
     print("Login process completed successfully.")
-
     input("Press Enter to continue...")
 
-    markAccountAsUsed(email, password)
+def ticketmasterAntiBot(driver: webdriver.Chrome):
+    """
+    Handles Ticketmaster anti-bot verification and performs login if successful.
 
-def ticketmasterAntiBot(profile, module, selected):
-    global driver, actions, email, password
-
+    Args:
+        driver (webdriver.Chrome): The WebDriver instance.
+    """
     email, password = getUnusedAccount()
-
-    if email is not None:
+    if email:
         try:
-            button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.ID, 'company-logo'))
-            )
+            button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'company-logo')))
             button.click()
             print("Sign in started.")
-
         except Exception as e:
-            print("Failed to click the button: ", e)
+            print(f"Failed to click the button: {e}")
 
         antibot_attempts = 0
         max_attempts = 3
 
         while antibot_attempts < max_attempts:
-            if isTextPresent("Please verify you are a human"):
+            if isTextPresent(driver, "Please verify you are a human"):
                 print(f"Anti-bot attempt {antibot_attempts + 1} of {max_attempts}!")
-
                 try:
                     time.sleep(5)
                     ActionChains(driver).key_down(Keys.TAB).key_up(Keys.TAB).perform()
                     time.sleep(1)
-
                     action = ActionChains(driver)
                     action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
                     print(f"Completed anti-bot attempt {antibot_attempts + 1}!")
                     time.sleep(5)
                     clear()
-
-                    if isTextPresent("Please verify you are a human"):
-                        antibot_attempts += 1                        
+                    if isTextPresent(driver, "Please verify you are a human"):
+                        antibot_attempts += 1
                         if antibot_attempts >= max_attempts:
                             print(f"Exceeded {max_attempts} attempts. Quitting.")
-                            return  # Exit the function or script
-
+                            return
                         print("Re-doing anti-bot!")
                     else:
                         print("Passed anti-bot!")
                         time.sleep(2.5)
-                        ticketmasterLogin(profile, module, selected)
-
+                        ticketmasterLogin(driver, email, password)
+                        return
                 except Exception as e:
                     print(f"Failed to do anti-bot attempt {antibot_attempts + 1}: {e}")
-
         if antibot_attempts == 0:
             print("No antibot verification required or successful.")
-            ticketmasterLogin(profile, module, selected)
-
+            ticketmasterLogin(driver, email, password)
     else:
         print("No unused accounts available.")
-    
-def ticketmasterModule(profile, module, selected):
+
+def ticketmasterModule(profile: str, module: str, selected: str):
+    """
+    Main function to run the Ticketmaster module.
+
+    Args:
+        profile (str): The profile name.
+        module (str): The module name.
+        selected (str): The selected event or action.
+    """
     proxies = readProxies()
     proxy = getRandomProxy(proxies)
-
     print(f"Selected Proxy: {proxy}")
-
     clear()
-    driver = configureDriver(proxy)
-    driver.get(f'https://registration.ticketmaster.com/{selected}')
-
     try:
+        driver = configureDriver(proxy)
+        driver.get(f'https://registration.ticketmaster.com/{selected}')
         print(f"Now loading {driver.title}...")
-        ticketmasterAntiBot(profile, module, selected)
-
+        ticketmasterAntiBot(driver)
     except Exception as e:
         print(f"Error in Ticketmaster module: {e}")
-
     finally:
-        driver.quit()
+        try:
+            driver.quit()
+        except Exception as e:
+            print(f"Error while quitting the driver: {e}")
 
+def shopifyCheckout(driver: webdriver.Chrome, profile: dict):
+    """
+    Performs the checkout process on a Shopify website.
 
-def shopifyCheckout():
-    global driver, actions, wait
+    Args:
+        driver (webdriver.Chrome): The WebDriver instance.
+        profile (dict): Profile data containing checkout details.
+    """
     actions = ActionChains(driver)
+    try:
+        checkoutButton = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[text()='Checkout']")))
+        checkoutButton.click()
+        print("Checkout initiated.")
+    except Exception as e:
+        print(f"Failed to initiate checkout: {e}")
+        return
 
-    if productUrl is not None:
-        try:
-            checkoutButton = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[text()='Checkout']")))
+    try:
+        actions.send_keys(profile["Email"]).perform()
+        actions.send_keys(Keys.TAB * 3).perform()
+        actions.send_keys(profile["FirstName"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["LastName"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["ShippingAddress"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["ShippingSecondary"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["ShippingCity"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["ShippingState"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["ShippingZipCode"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["ShippingPhone"]).perform()
+        actions.send_keys(Keys.TAB * 4).perform()
+        print("Shipping details filled.")
+    except Exception as e:
+        print(f"Failed to fill shipping details: {e}")
+        return
 
-            checkoutButton.click()
-            print("Checkout initiated.")
+    try:
+        actions.send_keys(profile["CardNumber"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["ExpirationDate"]).perform()
+        actions.send_keys(Keys.TAB).perform()
+        actions.send_keys(profile["SecurityCode"]).perform()
+        actions.send_keys(Keys.TAB * 7).perform()
+    except Exception as e:
+        print(f"Failed to fill payment details: {e}")
+        return
 
-            actions.send_keys(pEmail).perform()            
-            actions.send_keys(Keys.TAB).perform()            
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pFirstName).perform()            
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pLastName).perform()            
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pShippingAddress).perform()   
-            actions.send_keys(Keys.TAB).perform()     
-            actions.send_keys(pShippingSecondary).perform()   
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pShippingCity).perform()    
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pShippingState).perform() 
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pShippingZipCode).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pShippingPhone).perform()   
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
+    try:
+        checkbox = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Checkbox1']")))
+        checkbox.click()
+    except Exception as e:
+        print(f"Failed while agreeing to the TOS: {e}")
+    time.sleep(5)
+    print("Ready to checkout!")
 
-            print("Shipping details filled.")
+def shopifyAddToCart(driver: webdriver.Chrome, profile: dict):
+    """
+    Adds a product to the cart on a Shopify website and proceeds to checkout.
 
-            actions.send_keys(pCardNumber).perform() 
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pExpirationDate).perform()   
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(pSecurityCode).perform()   
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            actions.send_keys(Keys.TAB).perform()
-            try:
-                checkbox = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//input[@id='Checkbox1']")))
-                checkbox.click() 
-            except Exception as e:
-                print("Failed whilst agreeing to the TOS: ", e)
-            #actions.send_keys(Keys.TAB).perform()
-            #actions.send_keys(Keys.TAB).perform()
-            #actions.send_keys(Keys.TAB).perform()
-            time.sleep(5)
-            print("Ready to checkout!")
-            #checkout time
+    Args:
+        driver (webdriver.Chrome): The WebDriver instance.
+        profile (dict): Profile data containing checkout details.
+    """
+    try:
+        addToCartButton = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[text()='Add to Cart']")))
+        addToCartButton.click()
+        print("Add to cart initiated.")
+        shopifyCheckout(driver, profile)
+    except Exception as e:
+        print(f"Failed to add to cart: {e}")
 
-        except Exception as e:
-            print("Failed to initiate the checkout: ", e)
+def shopifyProductFound(driver: webdriver.Chrome, profile: dict, productUrl: str):
+    """
+    Loads a Shopify product page and attempts to add it to the cart.
 
-def shopifyAddToCart():
-    global driver, actions, wait
+    Args:
+        driver (webdriver.Chrome): The WebDriver instance.
+        profile (dict): Profile data containing checkout details.
+        productUrl (str): URL of the product page.
+    """
+    try:
+        driver.get(productUrl)
+        clear()
+        print(f"Now loading {driver.title}...")
+        time.sleep(2.5)
+        shopifyAddToCart(driver, profile)
+    except Exception as e:
+        print(f"Failed to load product page or add to cart: {e}")
 
-    if productUrl is not None:
-        try:
+def shopifyModule(profile: str, module: str, selected: str):
+    """
+    Main function to run the Shopify module.
 
-            wait = WebDriverWait(driver, 10)
-            addToCartButton = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[text()='Add to Cart']")))
-
-            addToCartButton.click()
-            print("Add to cart initiated.")
-
-            shopifyCheckout()
-            
-        except Exception as e:
-            print("Failed to add to cart: ", e)
-
-def shopifyProductFound():
+    Args:
+        profile (str): The profile name.
+        module (str): The module name.
+        selected (str): The selected Shopify store.
+    """
     proxies = readProxies()
-    
     proxy = getRandomProxy(proxies)
-    
     clear()
-
-    driver = configureDriver(proxy)
-    driver.get(productUrl)
-
-    clear()
-
-    print(f"Selected Proxy: {proxy}")
-    print("Now loading " + driver.title + "...")
-    print(productUrl)
-
-    time.sleep(2.5)
-    shopifyAddToCart()
-
-
-def shopifyModule(profile, module, selected):
-    global productUrl
-    proxies = readProxies()
-    
-    selectedProxy = getRandomProxy(proxies)
-
-    clear()
-    shopifySelectedUrl = 'https://' + selected + '.com/' + 'products.json'
-
-    desiredProduct = input("What product do you want? ") 
-    clear()
-
-    print(f"Selected Proxy: {selectedProxy}")
-
-    while True:
-        r = requests.get(shopifySelectedUrl)
-        products = json.loads(r.text)['products']
-
-        found = False
-
-        for product in products:
-            productName = product['title'].lower()
-
-            if desiredProduct.lower() in productName:
-                print("Checking for product.")
-                found = True
-                print(f"Found product: {product['title']}")
-                productUrl = 'https://www.' + selected + '.com/products/' + product['handle']
-                time.sleep(2.5)
-                shopifyProductFound()
-
-        if not found:
-            print(f"No product matching '{desiredProduct}' found. Waiting...")
-            time.sleep(3.333)
+    try:
+        driver = configureDriver(proxy)
+        shopifySelectedUrl = f'https://{selected}.com/products.json'
+        desiredProduct = input("What product do you want? ").lower()
+        clear()
+        print(f"Selected Proxy: {proxy}")
+        while True:
+            try:
+                r = requests.get(shopifySelectedUrl)
+                products = r.json().get('products', [])
+                found = False
+                for product in products:
+                    productName = product['title'].lower()
+                    if desiredProduct in productName:
+                        print(f"Found product: {product['title']}")
+                        productUrl = f'https://www.{selected}.com/products/{product["handle"]}'
+                        time.sleep(2.5)
+                        shopifyProductFound(driver, profile, productUrl)
+                        found = True
+                        break
+                if not found:
+                    print(f"No product matching '{desiredProduct}' found. Waiting...")
+                    time.sleep(3.333)
+            except requests.RequestException as e:
+                print(f"Error during product search: {e}")
+            except Exception as e:
+                print(f"An error occurred during product search: {e}")
+    except Exception as e:
+        print(f"Error in Shopify module: {e}")
+    finally:
+        try:
+            driver.quit()
+        except Exception as e:
+            print(f"Error while quitting the driver: {e}")
 
 @app.command()
 def profile(profile: str, module: str, selected: str):
-    profileSelect(profile, module, selected)
+    """
+    Loads the user profile and starts the appropriate module.
 
-def profileSelect(profile, module, selected):
-    global pName, pFirstName, pLastName, pEmail, pShippingAddress, pShippingSecondary, pShippingCity, pShippingZipCode, pShippingState, pShippingPhone, pBillingAddress, pBillingSecondary, pBillingCity, pBillingZipCode, pBillingState, pBillingPhone,  pCardNumber, pExpirationDate, pSecurityCode
+    Args:
+        profile (str): The profile name.
+        module (str): The module name.
+        selected (str): The selected event or action.
+    """
+    profileData = loadProfile(profile)
+    if profileData:
+        loadSite(profileData, module, selected)
 
-    
+def loadProfile(profile: str) -> Optional[dict]:
+    """
+    Loads user profile data from a file.
 
-    with open("files/profile_" + profile + ".txt", "r") as profile_file:
-        for line in profile_file:
-            print(line)
+    Args:
+        profile (str): The profile name.
 
-            if "Name:" in line:
-                pName = line.split("Name: ")[1].strip()
-                name_parts = pName.split(' ')
-                if len(name_parts) >= 2:
-                    pFirstName = name_parts[0]
-                    pLastName = name_parts[1]
-                else:
-                    print("Profile First Name / Last Name not filled out correctly!")
-            if "Email:" in line:
-                pEmail = line.split("Email: ")[1].strip()
-                
+    Returns:
+        Optional[dict]: A dictionary containing profile data or None if loading fails.
+    """
+    profileData = {}
+    try:
+        with open(f"files/profile_{profile}.txt", "r") as profile_file:
+            for line in profile_file:
+                if "Name:" in line:
+                    pName = line.split("Name: ")[1].strip()
+                    name_parts = pName.split(' ')
+                    profileData["FirstName"] = name_parts[0] if len(name_parts) >= 1 else ""
+                    profileData["LastName"] = name_parts[1] if len(name_parts) >= 2 else ""
+                if "Email:" in line:
+                    profileData["Email"] = line.split("Email: ")[1].strip()
+                if "Shipping Address:" in line:
+                    profileData["ShippingAddress"] = line.split("Shipping Address: ")[1].strip()
+                if "Shipping Secondary:" in line:
+                    profileData["ShippingSecondary"] = line.split("Shipping Secondary: ")[1].strip()
+                if "Shipping City:" in line:
+                    profileData["ShippingCity"] = line.split("Shipping City: ")[1].strip()
+                if "Shipping Zip Code:" in line:
+                    profileData["ShippingZipCode"] = line.split("Shipping Zip Code: ")[1].strip()
+                if "Shipping State:" in line:
+                    profileData["ShippingState"] = line.split("Shipping State: ")[1].strip()
+                if "Shipping Phone:" in line:
+                    profileData["ShippingPhone"] = line.split("Shipping Phone: ")[1].strip()
+                if "Billing Address:" in line:
+                    profileData["BillingAddress"] = line.split("Billing Address: ")[1].strip()
+                if "Billing Secondary:" in line:
+                    profileData["BillingSecondary"] = line.split("Billing Secondary: ")[1].strip()
+                if "Billing City:" in line:
+                    profileData["BillingCity"] = line.split("Billing City: ")[1].strip()
+                if "Billing Zip Code:" in line:
+                    profileData["BillingZipCode"] = line.split("Billing Zip Code: ")[1].strip()
+                if "Billing State:" in line:
+                    profileData["BillingState"] = line.split("Billing State: ")[1].strip()
+                if "Billing Phone:" in line:
+                    profileData["BillingPhone"] = line.split("Billing Phone: ")[1].strip()
+                if "Card Number:" in line:
+                    profileData["CardNumber"] = line.split("Card Number: ")[1].strip()
+                if "Expiration Date:" in line:
+                    profileData["ExpirationDate"] = line.split("Expiration Date: ")[1].strip()
+                if "Security Code:" in line:
+                    profileData["SecurityCode"] = line.split("Security Code: ")[1].strip()
+        clear()
+        print("Your profile has been loaded.")
+        return profileData
+    except FileNotFoundError:
+        print(f"Profile file not found for {profile}. Ensure 'files/profile_{profile}.txt' exists.")
+        return None
+    except Exception as e:
+        print(f"Failed to load profile: {e}")
+        return None
 
+def loadSite(profile: dict, module: str, selected: str):
+    """
+    Loads the appropriate module based on user input.
 
-            if "Shipping Address:" in line:
-                pShippingAddress = line.split("Shipping Address: ")[1].strip()
-            if "Shipping Secondary:" in line:
-                pShippingSecondary = line.split("Shipping Secondary: ")[1].strip()
-            if "Shipping City:" in line:
-                pShippingCity = line.split("Shipping City: ")[1].strip()
-            if "Shipping Zip Code:" in line:
-                pShippingZipCode = line.split("Shipping Zip Code: ")[1].strip()
-            if "Shipping State:" in line:
-                pShippingState = line.split("Shipping State: ")[1].strip()
-            if "Shipping Phone:" in line:
-                pShippingPhone = line.split("Shipping Phone: ")[1].strip()
-
-            if "Billing Address:" in line:
-                pBillingAddress = line.split("Billing Address: ")[1].strip()
-            if "Billing Secondary:" in line:
-                pBillingSecondary = line.split("Billing Secondary: ")[1].strip()
-            if "Billing City:" in line:
-                pBillingCity = line.split("Billing City: ")[1].strip()
-            if "Billing Zip Code:" in line:
-                pBillingZipCode = line.split("Billing Zip Code: ")[1].strip()
-            if "Billing State:" in line:
-                pBillingState = line.split("Billing State: ")[1].strip()
-            if "Billing Phone:" in line:
-                pBillingPhone = line.split("Billing Phone: ")[1].strip()
-            
-            if "Card Number:" in line:
-                pCardNumber = line.split("Card Number: ")[1].strip()
-            if "Expiration Date:" in line:
-                pExpirationDate = line.split("Expiration Date: ")[1].strip()
-            if "Security Code:" in line:
-                pSecurityCode = line.split("Security Code: ")[1].strip()
-
-
+    Args:
+        profile (dict): Profile data containing checkout details.
+        module (str): The module name.
+        selected (str): The selected event or action.
+    """
     clear()
-    
-    print("Your profile has been loaded.")
-
-    loadSite(profile, module, selected)
-
-def loadSite(profile, module, selected):
-    clear()
-
     if module.lower() == 'ticketmaster':
         clear()
         print("Ticketmaster Module Loading!")
@@ -431,5 +536,8 @@ def loadSite(profile, module, selected):
         exit()
 
 if __name__ == "__main__":
-    app()
-    ticketmasterModule("profile", "ticketmaster", "selected")
+    try:
+        app()
+        ticketmasterModule("profile", "ticketmaster", "selected")
+    except Exception as e:
+        print(f"Error in main execution: {e}")
