@@ -1,9 +1,11 @@
+import sys
 import os
 import time
 import random
 import requests
 import json
 import chromedriver_autoinstaller
+from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -13,19 +15,30 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
 import keyboard
 from universalclear import clear
-import typer
 from typing import List, Tuple, Optional
+import typer
 
 app = typer.Typer()
 
-ticketmasterAccountList: List[Tuple[str, str]] = []
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QLabel, QLineEdit, QStackedWidget, QListWidget, QListWidgetItem,
+    QTextEdit
+)
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
-def readProxies() -> List[str]:
+# Ensure PyQtWebEngine is installed
+# pip install PyQtWebEngine
+
+TicketmasterAccountList: List[Tuple[str, str]] = []
+
+def ReadProxies() -> List[str]:
     """
-    Reads proxy addresses from a file and returns them as a list.
+    Read proxies from the 'files/proxies.txt' file.
 
     Returns:
-        List[str]: A list of proxy addresses.
+        List[str]: List of proxies.
     """
     try:
         with open('files/proxies.txt', 'r') as file:
@@ -38,15 +51,15 @@ def readProxies() -> List[str]:
         print(f"An error occurred while reading proxies: {e}")
         return []
 
-def getRandomProxy(proxies: List[str]) -> Optional[str]:
+def GetRandomProxy(proxies: List[str]) -> Optional[str]:
     """
-    Selects a random proxy from the list of proxies.
+    Get a random proxy from the list of proxies.
 
     Args:
-        proxies (List[str]): A list of proxy addresses.
+        proxies (List[str]): List of proxies.
 
     Returns:
-        Optional[str]: A random proxy address or None if the list is empty.
+        Optional[str]: A random proxy or None if no proxies are available.
     """
     try:
         if proxies:
@@ -58,15 +71,15 @@ def getRandomProxy(proxies: List[str]) -> Optional[str]:
         print(f"An error occurred while selecting a proxy: {e}")
         return None
 
-def configureDriver(proxy: Optional[str] = None) -> webdriver.Chrome:
+def ConfigureDriver(proxy: Optional[str] = None) -> webdriver.Chrome:
     """
-    Configures and returns a Chrome WebDriver instance.
+    Configure the Chrome WebDriver with or without a proxy.
 
     Args:
-        proxy (Optional[str], optional): Proxy address to be used. Defaults to None.
+        proxy (Optional[str], optional): Proxy server address. Defaults to None.
 
     Returns:
-        webdriver.Chrome: Configured Chrome WebDriver instance.
+        webdriver.Chrome: Configured Chrome WebDriver.
     """
     try:
         chromeOptions = Options()
@@ -78,76 +91,60 @@ def configureDriver(proxy: Optional[str] = None) -> webdriver.Chrome:
         print(f"An error occurred while configuring the WebDriver: {e}")
         raise
 
-def isTextPresent(driver: webdriver.Chrome, text: str, email: str, password: str, retries: int = 3) -> bool:
+def IsTextPresent(driver: webdriver.Chrome, text: str, email: str, password: str, retries: int = 3) -> bool:
     """
-    Checks if the specified text is present on the web page.
+    Check if the specified text is present on the page.
 
     Args:
         driver (webdriver.Chrome): The WebDriver instance.
         text (str): The text to search for.
-        email (str): The email to use for login retry.
-        password (str): The password to use for login retry.
-        retries (int): The number of times to retry checking for the text.
+        email (str): The email for login.
+        password (str): The password for login.
+        retries (int, optional): Number of retries. Defaults to 3.
 
     Returns:
-        bool: True if the text is present, False otherwise.
+        bool: True if text is found, False otherwise.
     """
     for attempt in range(retries):
         try:
             elementPresent = EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{text}')]"))
-            WebDriverWait(driver, 10).until(elementPresent)
+            WebDriverWait(driver, 5).until(elementPresent)
             print("Found the text! Sending to the next process.")
             return True
         except Exception as e:
             print("Text not detected, moving on to the next process!")
-            ticketmasterLogin(driver, email, password)
+            TicketmasterLogin(driver, email, password)
     print(f"Failed to find text '{text}' after {retries} retries.")
     return False
 
-def holdKeyforDuration(key: str, duration: float):
+def LoadTicketmasterAccounts(profile: str, selected: str):
     """
-    Holds down a keyboard key for a specified duration.
-
-    Args:
-        key (str): The key to be held down.
-        duration (float): The duration in seconds to hold the key down.
-    """
-    try:
-        keyboard.press(key)
-        time.sleep(duration)
-        keyboard.release(key)
-    except Exception as e:
-        print(f"Error while holding key for duration: {e}")
-
-def loadTicketmasterAccounts(profile: str, module: str, selected: str):
-    """
-    Loads Ticketmaster accounts from a file and starts the Ticketmaster module.
+    Load Ticketmaster accounts from the 'files/ticketmaster_accounts.txt' file.
 
     Args:
         profile (str): The profile name.
-        module (str): The module name.
         selected (str): The selected event or action.
     """
-    global ticketmasterAccountList
+    global TicketmasterAccountList
     try:
-        ticketmasterAccountList = []
+        TicketmasterAccountList = []
         with open("files/ticketmaster_accounts.txt", "r") as file:
             for line in file:
                 email, password = line.strip().split(":")
-                ticketmasterAccountList.append((email, password))
-        print("Accounts loaded:", ticketmasterAccountList)
+                TicketmasterAccountList.append((email, password))
+        print(f"Accounts loaded: {TicketmasterAccountList}")
         time.sleep(1)
         clear()
         print("Ticketmaster module loading...")
-        ticketmasterModule(profile, module, selected)
+        TicketmasterModule(profile, selected)
     except FileNotFoundError:
         print("Ticketmaster accounts file not found. Ensure 'files/ticketmaster_accounts.txt' exists.")
     except Exception as e:
         print(f"An error occurred while loading Ticketmaster accounts: {e}")
 
-def markAccountAsUsed(email: str, password: str):
+def MarkAccountAsUsed(email: str, password: str):
     """
-    Marks a Ticketmaster account as used by commenting it out in the file.
+    Mark a Ticketmaster account as used in the 'files/ticketmaster_accounts.txt' file.
 
     Args:
         email (str): The email of the account.
@@ -166,29 +163,29 @@ def markAccountAsUsed(email: str, password: str):
     except Exception as e:
         print(f"An error occurred while marking account as used: {e}")
 
-def getUnusedAccount() -> Tuple[Optional[str], Optional[str]]:
+def GetUnusedAccount() -> Tuple[Optional[str], Optional[str]]:
     """
-    Retrieves an unused Ticketmaster account.
+    Get an unused Ticketmaster account.
 
     Returns:
-        Tuple[Optional[str], Optional[str]]: The email and password of an unused account or (None, None) if no unused accounts are available.
+        Tuple[Optional[str], Optional[str]]: Email and password of the unused account, or (None, None) if no unused accounts are available.
     """
     try:
-        for email, password in ticketmasterAccountList:
+        for email, password in TicketmasterAccountList:
             return email, password
         return None, None
     except Exception as e:
         print(f"An error occurred while getting an unused account: {e}")
         return None, None
 
-def ticketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
+def TicketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
     """
-    Logs into Ticketmaster using the provided email and password.
+    Perform login on Ticketmaster.
 
     Args:
         driver (webdriver.Chrome): The WebDriver instance.
-        email (str): The email of the Ticketmaster account.
-        password (str): The password of the Ticketmaster account.
+        email (str): The email for login.
+        password (str): The password for login.
     """
     try:
         emailInput = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.NAME, 'email')))
@@ -213,27 +210,28 @@ def ticketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
         time.sleep(5)
     except Exception as e:
         print(f"Failed to click sign in button: {e}")
+        return
 
     try:
-        while isTextPresent(driver, "Please verify you are a human", email, password):
-            time.sleep(5)
-            action = ActionChains(driver)
-            action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
-            time.sleep(5)
-            print("Second anti-bot done successfully.")
-            return
+        time.sleep(5)
+        action = ActionChains(driver)
+        action.key_down(Keys.TAB).key_up(Keys.TAB).perform()
+        time.sleep(1)
+        action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
+        print("Second anti-bot completed, login should have been completed!")
     except Exception as e:
         print(f"Error during second anti-bot process: {e}")
     print("Login process completed successfully.")
+    return
 
-def ticketmasterAntiBot(driver: webdriver.Chrome):
+def TicketmasterAntiBot(driver: webdriver.Chrome):
     """
-    Handles Ticketmaster anti-bot verification and performs login if successful.
+    Handle anti-bot verification on Ticketmaster.
 
     Args:
         driver (webdriver.Chrome): The WebDriver instance.
     """
-    email, password = getUnusedAccount()
+    email, password = GetUnusedAccount()
     if email:
         try:
             button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'company-logo')))
@@ -242,58 +240,58 @@ def ticketmasterAntiBot(driver: webdriver.Chrome):
         except Exception as e:
             print(f"Failed to click the button: {e}")
 
-        antibot_attempts = 0
-        max_attempts = 3
+        antibotAttempts = 0
+        maxAttempts = 3
 
-        while antibot_attempts < max_attempts:
-            if isTextPresent(driver, "Please verify you are a human", email, password):
-                print(f"Anti-bot attempt {antibot_attempts + 1} of {max_attempts}!")
+        while antibotAttempts < maxAttempts:
+            if IsTextPresent(driver, "Please verify you are a human", email, password):
+                clear()
+                print(f"Anti-bot attempt {antibotAttempts + 1} of {maxAttempts}!")
                 try:
                     time.sleep(5)
                     ActionChains(driver).key_down(Keys.TAB).key_up(Keys.TAB).perform()
                     time.sleep(1)
                     action = ActionChains(driver)
                     action.key_down(Keys.ENTER).pause(15).key_up(Keys.ENTER).perform()
-                    print(f"Completed anti-bot attempt {antibot_attempts + 1}!")
+                    print(f"Completed anti-bot attempt {antibotAttempts + 1}!")
                     time.sleep(5)
                     clear()
-                    if isTextPresent(driver, "Please verify you are a human", email, password):
-                        antibot_attempts += 1
-                        if antibot_attempts >= max_attempts:
-                            print(f"Exceeded {max_attempts} attempts. Quitting.")
+                    if IsTextPresent(driver, "Please verify you are a human", email, password):
+                        antibotAttempts += 1
+                        if antibotAttempts >= maxAttempts:
+                            print(f"Exceeded {maxAttempts} attempts. Quitting.")
                             return
                         print("Re-doing anti-bot!")
                     else:
                         print("Passed anti-bot!")
                         time.sleep(2.5)
-                        ticketmasterLogin(driver, email, password)
+                        TicketmasterLogin(driver, email, password)
                         return
                 except Exception as e:
-                    print(f"Failed to do anti-bot attempt {antibot_attempts + 1}: {e}")
-        if antibot_attempts == 0:
+                    print(f"Failed to do anti-bot attempt {antibotAttempts + 1}: {e}")
+        if antibotAttempts == 0:
             print("No antibot verification required or successful.")
-            ticketmasterLogin(driver, email, password)
+            TicketmasterLogin(driver, email, password)
     else:
         print("No unused accounts available.")
 
-def ticketmasterModule(profile: str, module: str, selected: str):
+def TicketmasterModule(profile: str, selected: str):
     """
-    Main function to run the Ticketmaster module.
+    Run the Ticketmaster module.
 
     Args:
         profile (str): The profile name.
-        module (str): The module name.
         selected (str): The selected event or action.
     """
-    proxies = readProxies()
-    proxy = getRandomProxy(proxies)
+    proxies = ReadProxies()
+    proxy = GetRandomProxy(proxies)
     print(f"Selected Proxy: {proxy}")
     clear()
     try:
-        driver = configureDriver(proxy)
+        driver = ConfigureDriver(proxy)
         driver.get(f'https://registration.ticketmaster.com/{selected}')
         print(f"Now loading {driver.title}...")
-        ticketmasterAntiBot(driver)
+        TicketmasterAntiBot(driver)
     except Exception as e:
         print(f"Error in Ticketmaster module: {e}")
     finally:
@@ -302,9 +300,9 @@ def ticketmasterModule(profile: str, module: str, selected: str):
         except Exception as e:
             print(f"Error while quitting the driver: {e}")
 
-def shopifyCheckout(driver: webdriver.Chrome, profile: dict):
+def ShopifyCheckout(driver: webdriver.Chrome, profile: dict):
     """
-    Performs the checkout process on a Shopify website.
+    Perform checkout on Shopify.
 
     Args:
         driver (webdriver.Chrome): The WebDriver instance.
@@ -367,25 +365,27 @@ def shopifyCheckout(driver: webdriver.Chrome, profile: dict):
     time.sleep(5)
     print("Ready to checkout!")
 
-def shopifyAddToCart(driver: webdriver.Chrome, profile: dict):
+def ShopifyAddToCart(driver: webdriver.Chrome, profile: dict):
     """
-    Adds a product to the cart on a Shopify website and proceeds to checkout.
+    Add a product to the cart on a Shopify website and proceed to checkout.
 
     Args:
         driver (webdriver.Chrome): The WebDriver instance.
         profile (dict): Profile data containing checkout details.
     """
+    actions = ActionChains(driver)
     try:
         addToCartButton = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[text()='Add to Cart']")))
         addToCartButton.click()
         print("Add to cart initiated.")
-        shopifyCheckout(driver, profile)
+        ShopifyCheckout(driver, profile)
     except Exception as e:
-        print(f"Failed to add to cart: {e}")
+        print(f"Failed to initiate add to cart: {e}")
+        return
 
-def shopifyProductFound(driver: webdriver.Chrome, profile: dict, productUrl: str):
+def ShopifyProductFound(driver: webdriver.Chrome, profile: dict, productUrl: str):
     """
-    Loads a Shopify product page and attempts to add it to the cart.
+    Load a Shopify product page and attempt to add it to the cart.
 
     Args:
         driver (webdriver.Chrome): The WebDriver instance.
@@ -397,26 +397,25 @@ def shopifyProductFound(driver: webdriver.Chrome, profile: dict, productUrl: str
         clear()
         print(f"Now loading {driver.title}...")
         time.sleep(2.5)
-        shopifyAddToCart(driver, profile)
+        ShopifyAddToCart(driver, profile)
     except Exception as e:
         print(f"Failed to load product page or add to cart: {e}")
 
-def shopifyModule(profile: str, module: str, selected: str):
+def ShopifyModule(profile: str, selected: str, desiredProduct: str):
     """
     Main function to run the Shopify module.
 
     Args:
         profile (str): The profile name.
-        module (str): The module name.
         selected (str): The selected Shopify store.
+        desiredProduct (str): The product to search for.
     """
-    proxies = readProxies()
-    proxy = getRandomProxy(proxies)
+    proxies = ReadProxies()
+    proxy = GetRandomProxy(proxies)
     clear()
     try:
-        driver = configureDriver(proxy)
+        driver = ConfigureDriver(proxy)
         shopifySelectedUrl = f'https://{selected}.com/products.json'
-        desiredProduct = input("What product do you want? ").lower()
         clear()
         print(f"Selected Proxy: {proxy}")
         while True:
@@ -430,7 +429,7 @@ def shopifyModule(profile: str, module: str, selected: str):
                         print(f"Found product: {product['title']}")
                         productUrl = f'https://www.{selected}.com/products/{product["handle"]}'
                         time.sleep(2.5)
-                        shopifyProductFound(driver, profile, productUrl)
+                        ShopifyProductFound(driver, profile, productUrl)
                         found = True
                         break
                 if not found:
@@ -448,23 +447,9 @@ def shopifyModule(profile: str, module: str, selected: str):
         except Exception as e:
             print(f"Error while quitting the driver: {e}")
 
-@app.command()
-def profile(profile: str, module: str, selected: str):
+def LoadProfile(profile: str) -> Optional[dict]:
     """
-    Loads the user profile and starts the appropriate module.
-
-    Args:
-        profile (str): The profile name.
-        module (str): The module name.
-        selected (str): The selected event or action.
-    """
-    profileData = loadProfile(profile)
-    if profileData:
-        loadSite(profileData, module, selected)
-
-def loadProfile(profile: str) -> Optional[dict]:
-    """
-    Loads user profile data from a file.
+    Load user profile data from a file.
 
     Args:
         profile (str): The profile name.
@@ -474,13 +459,13 @@ def loadProfile(profile: str) -> Optional[dict]:
     """
     profileData = {}
     try:
-        with open(f"files/profile_{profile}.txt", "r") as profile_file:
-            for line in profile_file:
+        with open(f"files/profile_{profile}.txt", "r") as profileFile:
+            for line in profileFile:
                 if "Name:" in line:
                     pName = line.split("Name: ")[1].strip()
-                    name_parts = pName.split(' ')
-                    profileData["FirstName"] = name_parts[0] if len(name_parts) >= 1 else ""
-                    profileData["LastName"] = name_parts[1] if len(name_parts) >= 2 else ""
+                    nameParts = pName.split(' ')
+                    profileData["FirstName"] = nameParts[0] if len(nameParts) >= 1 else ""
+                    profileData["LastName"] = nameParts[1] if len(nameParts) >= 2 else ""
                 if "Email:" in line:
                     profileData["Email"] = line.split("Email: ")[1].strip()
                 if "Shipping Address:" in line:
@@ -523,7 +508,7 @@ def loadProfile(profile: str) -> Optional[dict]:
         print(f"Failed to load profile: {e}")
         return None
 
-def loadSite(profile: dict, module: str, selected: str):
+def LoadSite(profile: str, module: str, selected: str, desiredProduct: str):
     """
     Loads the appropriate module based on user input.
 
@@ -531,24 +516,45 @@ def loadSite(profile: dict, module: str, selected: str):
         profile (dict): Profile data containing checkout details.
         module (str): The module name.
         selected (str): The selected event or action.
+        desiredProduct (Optional[str]): The desired product.
     """
     clear()
     if module.lower() == 'ticketmaster':
         clear()
         print("Ticketmaster Module Loading!")
-        loadTicketmasterAccounts(profile, module, selected)
+        LoadTicketmasterAccounts(profile, selected)
     elif module.lower() == 'shopify':
         clear()
         print("Shopify Module Loading!")
-        shopifyModule(profile, module, selected)
+        ShopifyModule(profile, selected, desiredProduct)
     else:
         print("Invalid module choice.")
         time.sleep(2.5)
         exit()
 
+@app.command()
+def profile(profile: str, module: str, selected: str, desiredproduct: str):
+    """
+    Loads the user profile and starts the appropriate module.
+
+    Args:
+        profile (str): The profile name.
+        module (str): The module name.
+        selected (str): The selected event or action.
+        desiredProduct (Optional[str]): The desired product.
+    """
+    
+    desiredProduct = desiredproduct.lower()
+    profileData = LoadProfile(profile)
+    if profileData:
+        LoadSite(profileData, module, selected, desiredProduct)
+    if desiredProduct:
+        LoadSite(profileData, module, selected, desiredProduct)
+    else:
+        return
+    
 if __name__ == "__main__":
     try:
         app()
-        ticketmasterModule("profile", "ticketmaster", "selected")
     except Exception as e:
         print(f"Error in main execution: {e}")

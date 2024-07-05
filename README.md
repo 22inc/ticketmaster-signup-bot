@@ -38,7 +38,7 @@ Proxies: Prepare a proxies.txt file with proxy addresses if needed.
 # Run the Script:
 
 ```bash
-typer (filename).py run (your_profile_name) (wanted_module) (destination)
+typer (filename).py run (your profile name) (selected module) (shopify: website / ticketmaster: event or artist) (desired product)
 ```
 
 Profile Name: Name of the profile file without extension (e.g., example for profile_example.txt).
@@ -57,5 +57,7 @@ Ensure your profiles and account details are correctly formatted as per the scri
 # Known Errors
 
 Currently does not click the checkbox or checkout for the newly implemented shopify module.
+
+Shopify Module does not work at all..
 
 # Developed with love by Malik Hassan!
