@@ -33,6 +33,10 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 TicketmasterAccountList: List[Tuple[str, str]] = []
 
+def AfterLoginProcess():
+    print("Login completed!")
+    time.sleep(3600)
+
 def ReadProxies() -> List[str]:
     """
     Read proxies from the 'files/proxies.txt' file.
@@ -188,6 +192,7 @@ def TicketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
         password (str): The password for login.
     """
     try:
+        time.sleep(1)
         emailInput = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.NAME, 'email')))
         emailInput.send_keys(email)
         print("Email entered successfully.")
@@ -196,6 +201,7 @@ def TicketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
         return
 
     try:
+        time.sleep(1)
         passwordInput = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.NAME, 'password')))
         passwordInput.send_keys(password)
         print("Password entered successfully.")
@@ -204,10 +210,10 @@ def TicketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
         return
 
     try:
+        time.sleep(1)
         signInButton = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Sign in']")))
         signInButton.click()
         print("Sign in button clicked.")
-        time.sleep(5)
     except Exception as e:
         print(f"Failed to click sign in button: {e}")
         return
@@ -222,7 +228,7 @@ def TicketmasterLogin(driver: webdriver.Chrome, email: str, password: str):
     except Exception as e:
         print(f"Error during second anti-bot process: {e}")
     print("Login process completed successfully.")
-    return
+    AfterLoginProcess()
 
 def TicketmasterAntiBot(driver: webdriver.Chrome):
     """
@@ -234,6 +240,7 @@ def TicketmasterAntiBot(driver: webdriver.Chrome):
     email, password = GetUnusedAccount()
     if email:
         try:
+            time.sleep(2.5)
             button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'company-logo')))
             button.click()
             print("Sign in started.")
@@ -548,9 +555,8 @@ def profile(profile: str, module: str, selected: str, desiredproduct: str):
     profileData = LoadProfile(profile)
     if profileData:
         LoadSite(profileData, module, selected, desiredProduct)
-    if desiredProduct:
-        LoadSite(profileData, module, selected, desiredProduct)
     else:
+        print("Error! Something is missing...")
         return
     
 if __name__ == "__main__":
