@@ -434,7 +434,7 @@ def ShopifyModule(profile: str, selected: str, desiredProduct: str):
                     productName = product['title'].lower()
                     if desiredProduct in productName:
                         print(f"Found product: {product['title']}")
-                        productUrl = f'https://www.{selected}.com/products/{product["handle"]}'
+                        productUrl = f'https://{selected}.com/products/{product["handle"]}'
                         time.sleep(2.5)
                         ShopifyProductFound(driver, profile, productUrl)
                         found = True
